@@ -32,16 +32,11 @@ const LandingPage = () => {
     <div className="min-h-screen bg-white text-gray-900 font-sans overflow-hidden">
       {/* Header Section */}
       <header className="relative w-full h-96 bg-gradient-to-br from-indigo-600 to-purple-700 overflow-hidden">
-        {/* Logo on the right */}
-        <div className="absolute top-4 right-4 z-20">
-          <img src="/fba.png" alt="Logo" className="h-21 w-auto" />
-        </div>
+
 
         {/* Main Content */}
-        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center text-center text-white">
-          <h1 className="text-5xl md:text-7xl font-bold mb-4 drop-shadow-lg">
-            FBA.AI
-          </h1>
+        <div className="absolute top-20 inset-0 z-10 flex flex-col items-center justify-center text-center text-white">
+          <img src="/fba.png" alt="Logo" className="h-60 w-auto" />
           <p className="text-xl md:text-2xl font-medium mb-8 drop-shadow-md">
             Full Business Audit - AI-Powered Insights for Your Company
           </p>
@@ -73,7 +68,7 @@ const LandingPage = () => {
             {/* Left Side: Form */}
             <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-100">
               <h3 className="text-2xl font-semibold text-gray-900 mb-6">
-                Get Your Free Audit Report
+                Free FBA Full Business Audit
               </h3>
               <form onSubmit={handleSubmit} className="space-y-6">
                 <div>
