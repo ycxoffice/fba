@@ -1,5 +1,7 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
+import axios from 'axios';
+
 
 const LandingPage = () => {
   const [formData, setFormData] = useState({
@@ -19,14 +21,34 @@ const LandingPage = () => {
     }));
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    setIsLoading(true);
-    setTimeout(() => {
-      setIsLoading(false);
-      window.location.href = "/"; // Simulate routing to /report page
-    }, 2000); // Simulate loader for 2 seconds
-  };
+const handleSubmit = async (e) => {
+  e.preventDefault();
+  setIsLoading(true);
+
+  try {
+    const response = await axios.post('http://localhost:5001/api/audit' , formData);
+
+    setIsLoading(false);
+    if (response.data.error) {
+      alert(`Error: ${response.data.error}`); // Show error if any
+    } else {
+      alert('Audit saved successfully!');
+      console.log(response.data);
+      window.location.href = '/'; // Redirect after success
+    }
+  } catch (error) {
+    setIsLoading(false);
+    console.error('Error during the request:', error);
+
+    // Check if it's a network error
+    if (error.code === 'ERR_NETWORK') {
+      alert("Network error: Unable to reach the server. Please check your connection or the server status.");
+    } else {
+      alert(`An error occurred: ${error.response ? error.response.data.error : error.message}`);
+    }
+  }
+};
+
 
   return (
     <div className="min-h-screen bg-white text-gray-900 font-sans overflow-hidden">
@@ -84,7 +106,7 @@ const LandingPage = () => {
                     value={formData.company_name}
                     onChange={handleChange}
                     className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    required
+
                   />
                 </div>
                 <div>
@@ -101,7 +123,7 @@ const LandingPage = () => {
                     value={formData.registration_number}
                     onChange={handleChange}
                     className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    required
+
                   />
                 </div>
                 <div>
@@ -118,7 +140,7 @@ const LandingPage = () => {
                     value={formData.website}
                     onChange={handleChange}
                     className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    required
+
                   />
                 </div>
                 <div>
@@ -135,7 +157,7 @@ const LandingPage = () => {
                     value={formData.linkedin}
                     onChange={handleChange}
                     className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-                    required
+
                   />
                 </div>
                 <button
