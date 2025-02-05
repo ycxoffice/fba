@@ -33,10 +33,9 @@ const LandingPage = () => {
       {/* Header Section */}
       <header className="relative w-full h-96 bg-gradient-to-br from-indigo-600 to-purple-700 overflow-hidden">
 
-
         {/* Main Content */}
         <div className="absolute top-20 inset-0 z-10 flex flex-col items-center justify-center text-center text-white">
-          <img src="/fba.png" alt="Logo" className="h-60 w-auto" />
+          <img src="/fba.png" alt="Logo" className="h-65 w-auto" />
           <p className="text-xl md:text-2xl font-medium mb-8 drop-shadow-md">
             Full Business Audit - AI-Powered Insights for Your Company
           </p>
