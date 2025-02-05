@@ -115,6 +115,12 @@ export const dummyData = {
         linkedin: "linkedin.com/in/janesmith",
         background: "Ex-Goldman Sachs",
       },
+      {
+        name: "Mike Dell",
+        role: "Co-Founder",
+        linkedin: "linkedin.com/in/mikedell",
+        background: "10 years in business",
+      },
     ],
     boardOfDirectors: [
       {
