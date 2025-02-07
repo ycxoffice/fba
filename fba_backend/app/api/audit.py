@@ -5,59 +5,50 @@ import requests
 
 audit_bp = Blueprint("audit", __name__)
 
-
-
-audit_bp = Blueprint("audit", __name__)
-
-RAPIDAPI_HOST = "fresh-linkedin-profile-data.p.rapidapi.com"
+RAPIDAPI_LINKEDIN_HOST = "fresh-linkedin-profile-data.p.rapidapi.com"
+RAPIDAPI_COMPANY_HOST = "company-intelligence.p.rapidapi.com"
 RAPIDAPI_KEY = "b3e1057148msh3b8f35241e1969fp1a3710jsn0939a32f1193"
 
 @audit_bp.route("", methods=["POST"])
 def create_audit():
     try:
         data = request.json
-        required_fields = ["company_name", "registration_number", "website_url", "linkedin_url"]
+        required_fields = ["company_name", "registration_number"]
 
         # Validate required fields
         missing_fields = [field for field in required_fields if field not in data]
         if missing_fields:
             return jsonify({"error": f"Missing fields: {', '.join(missing_fields)}"}), 400
 
-        linkedin_url = data["linkedin_url"]
-        linkedin_data = {}
+        website_url = data["website"]
+        linkedin_url = data["linkedin"]
+        company_data = {}
 
-        # Fetch LinkedIn data
+        # Fetch Company Intelligence data
         try:
-            response = requests.get(
-                "https://fresh-linkedin-profile-data.p.rapidapi.com/get-account-iq",
+            company_response = requests.get(
+                f"https://{RAPIDAPI_COMPANY_HOST}/company-info",
                 headers={
-                    "x-rapidapi-host": RAPIDAPI_HOST,
+                    "x-rapidapi-host": RAPIDAPI_COMPANY_HOST,
                     "x-rapidapi-key": RAPIDAPI_KEY
                 },
-                params={"linkedin_url": linkedin_url}
+                params={"domain": website_url}
             )
-            if response.status_code == 200:
-                linkedin_data = response.json().get("data", {})
-            else:
-                return jsonify({"error": "Failed to fetch LinkedIn data"}), response.status_code
-
+            if company_response.status_code == 200:
+                company_data = company_response.json().get("data", {})
         except requests.RequestException as req_err:
-            return jsonify({"error": "Error connecting to LinkedIn API", "details": str(req_err)}), 500
+            return jsonify({"error": "Error connecting to Company Intelligence API", "details": str(req_err)}), 500
+
 
         # Create and save the Audit document
         audit = Audit(
             company_name=data["company_name"],
             registration_number=data["registration_number"],
-            website_url=data["website_url"],
+            website_url=website_url,
             linkedin_url=linkedin_url,
-            competitors=linkedin_data.get("Competitive landscape", {}).get("competitors", []),
-            competitive_description=linkedin_data.get("Competitive landscape", {}).get("description"),
-            decision_makers=linkedin_data.get("Decision makers", []),
-            recent_Q=linkedin_data.get("Estimated revenue", {}).get("recent_Q", {}),
-            recent_year=linkedin_data.get("Estimated revenue", {}).get("recent_year", {}),
-            headcount_insights=linkedin_data.get("Headcount insights"),
-            how_company_makes_money=linkedin_data.get("How the company makes money"),
-            related_news=linkedin_data.get("Related news", [])
+            properties=company_data["properties"],
+            info=company_data["info"]
+            # Dynamically store all API fields
         )
 
         audit.save()
@@ -69,6 +60,7 @@ def create_audit():
 
 
 
+
 @audit_bp.route("/", methods=["GET"])
 def get_audits():
     try:
@@ -76,3 +68,21 @@ def get_audits():
         return jsonify([audit.to_json() for audit in audits]), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+# Get audit by company_name
+@audit_bp.route("/<company_name>", methods=["GET"])
+def get_audit_by_company_name(company_name):
+    try:
+        audit = Audit.objects(company_name=company_name).first()
+        if not audit:
+            return jsonify({"error": "Audit not found"}), 404
+
+        return jsonify({
+            "companyName": audit.company_name,
+            "data": {
+                "properties": audit.properties,
+                "info": audit.info
+            }
+        }), 200
+    except Exception as e:
+        return jsonify({"error": "Internal Server Error", "details": str(e)}), 500

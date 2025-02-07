@@ -54,7 +54,7 @@ const handleSubmit = async (e) => {
     <div className="min-h-screen bg-white text-gray-900 font-sans overflow-hidden">
       {/* Header Section */}
       <header className="relative w-full h-96 bg-gradient-to-br from-indigo-600 to-purple-700 overflow-hidden">
-
+     
         {/* Main Content */}
         <div className="absolute top-20 inset-0 z-10 flex flex-col items-center justify-center text-center text-white">
           <img src="/fba.png" alt="Logo" className="h-65 w-auto" />
@@ -72,6 +72,7 @@ const handleSubmit = async (e) => {
 
       {/* Main Content Section */}
       <main className="relative z-20 px-6 py-12 md:py-24">
+
         <div className="max-w-6xl mx-auto">
           {/* Hero Section */}
           <section className="mb-16 text-center">
@@ -134,7 +135,7 @@ const handleSubmit = async (e) => {
                     Website URL
                   </label>
                   <input
-                    type="url"
+                    type="text"
                     name="website"
                     id="website"
                     value={formData.website}
