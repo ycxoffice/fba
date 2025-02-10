@@ -21,4 +21,9 @@ def create_app():
     MONGO_URI = os.getenv("MONGO_URI")
     connect(db="fba", host=MONGO_URI)
 
+    # Health Check Route
+    @app.route("/health")
+    def health_check():
+        return ({"status": "healthy"}), 200
+
     return app
