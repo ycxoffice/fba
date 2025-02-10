@@ -16,9 +16,6 @@ def create_app():
 
     # Register blueprints
     app.register_blueprint(audit_bp, url_prefix="/api/audit")
-    app.config.from_object(Config)  # Load app config from the Config class
-
-    load_dotenv()
 
     # Connect to MongoDB Atlas
     MONGO_URI = os.getenv("MONGO_URI")

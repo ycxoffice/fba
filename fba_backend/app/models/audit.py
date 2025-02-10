@@ -1,8 +1,6 @@
 from flask_mongoengine import MongoEngine
-from mongoengine import (
-    Document, StringField, IntField, ListField, DictField
-)
-from bson import ObjectId  # Import to handle ObjectId serialization
+from mongoengine import Document, StringField, IntField, DictField
+from bson import json_util
 
 db = MongoEngine()
 
@@ -19,10 +17,10 @@ class Audit(Document):
     properties = DictField(default={})
     info = DictField(default={})
 
-
     def to_json(self):
+        """ ✅ Fix serialization issue using `json_util.dumps` """
         return {
-            "id": str(self.id),  # ✅ Convert ObjectId to string to fix serialization issue
+            "id": str(self.id),  # ✅ Convert ObjectId to string
             "company_name": self.company_name,
             "registration_number": self.registration_number,
             "website_url": self.website_url,

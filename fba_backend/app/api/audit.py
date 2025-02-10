@@ -59,15 +59,33 @@ def create_audit():
         return jsonify({"error": "Internal Server Error", "details": str(e)}), 500
 
 
-
-
 @audit_bp.route("/", methods=["GET"])
-def get_audits():
+def get_companies():
     try:
-        audits = Audit.objects()
-        return jsonify([audit.to_json() for audit in audits]), 200
+        search_query = request.args.get("search", "")
+        page = int(request.args.get("page", 1))
+        limit = int(request.args.get("limit", 10))
+
+        # Construct the query filter
+        query = {"company_name": {"$regex": search_query, "$options": "i"}} if search_query else {}
+
+        # Use MongoEngine's `objects` to query the Audit model
+        companies = Audit.objects(__raw__=query).only("company_name").skip((page - 1) * limit).limit(limit)
+
+        # Get total count of documents
+        total = Audit.objects(__raw__=query).count()
+
+        return jsonify({
+            "companies": [company.to_json() for company in companies],  # Ensure proper JSON serialization
+            "total": total,
+            "page": page,
+            "limit": limit
+        })
+
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
 
 # Get audit by company_name
 @audit_bp.route("/<company_name>", methods=["GET"])
