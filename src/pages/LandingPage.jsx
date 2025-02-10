@@ -31,12 +31,11 @@ const LandingPage = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setIsLoading(true);
+    const BASE_URL =
+      import.meta.env.VITE_FBA_BACKEND_URL || "http://localhost:5001";
 
     try {
-      const response = await axios.post(
-        "http://localhost:5001/api/audit",
-        formData
-      );
+      const response = await axios.post(`${BASE_URL}/api/audit`, formData);
 
       setIsLoading(false);
       if (response.data.error) {
@@ -103,7 +102,7 @@ const LandingPage = () => {
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex items-center justify-between h-20">
             <img src="/fba.png" alt="Logo" className="h-30" />
-            <div className="hidden md:flex items-center space-x-8">
+            <div className="flex items-center space-x-8">
               <button
                 onClick={() => navigate("/companies")}
                 className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full hover:shadow-lg hover:scale-105 transition-all duration-300"

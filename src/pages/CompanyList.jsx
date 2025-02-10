@@ -2,6 +2,9 @@ import React, { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { Search, Building2, ArrowRight } from "lucide-react";
 
+const BASE_URL =
+  import.meta.env.VITE_FBA_BACKEND_URL || "http://localhost:5001";
+
 const CompanyList = () => {
   const [companies, setCompanies] = useState([]);
   const [search, setSearch] = useState("");
@@ -12,9 +15,7 @@ const CompanyList = () => {
 
   useEffect(() => {
     setLoading(true);
-    fetch(
-      `http://localhost:5001/api/audit?search=${search}&page=${page}&limit=${limit}`
-    )
+    fetch(`${BASE_URL}/api/audit?search=${search}&page=${page}&limit=${limit}`)
       .then((res) => res.json())
       .then((data) => {
         setCompanies(data.companies);
