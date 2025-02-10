@@ -1,7 +1,6 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
-import axios from 'axios';
-
+import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
 const LandingPage = () => {
   const [formData, setFormData] = useState({
@@ -12,6 +11,14 @@ const LandingPage = () => {
   });
 
   const [isLoading, setIsLoading] = useState(false);
+  const [scrolled, setScrolled] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const handleScroll = () => setScrolled(window.scrollY > 50);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -21,287 +28,246 @@ const LandingPage = () => {
     }));
   };
 
-const handleSubmit = async (e) => {
-  e.preventDefault();
-  setIsLoading(true);
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setIsLoading(true);
 
-  try {
-    const response = await axios.post('http://localhost:5001/api/audit' , formData);
+    try {
+      const response = await axios.post(
+        "http://localhost:5001/api/audit",
+        formData
+      );
 
-    setIsLoading(false);
-    if (response.data.error) {
-      alert(`Error: ${response.data.error}`); // Show error if any
-    } else {
-      alert('Audit saved successfully!');
-      console.log(response.data);
-      window.location.href = '/'; // Redirect after success
+      setIsLoading(false);
+      if (response.data.error) {
+        alert(`Error: ${response.data.error}`); // Show error if any
+      } else {
+        alert("Audit saved successfully. ");
+        console.log(response.data);
+        window.location.href = "/companies"; // Redirect after success
+      }
+    } catch (error) {
+      setIsLoading(false);
+      console.error("Error during the request:", error);
+
+      // Check if it's a network error
+      if (error.code === "ERR_NETWORK") {
+        alert(
+          "Network error: Unable to reach the server. Please check your connection or the server status."
+        );
+      } else {
+        alert(
+          `An error occurred: ${
+            error.response ? error.response.data.error : error.message
+          }`
+        );
+      }
     }
-  } catch (error) {
-    setIsLoading(false);
-    console.error('Error during the request:', error);
-
-    // Check if it's a network error
-    if (error.code === 'ERR_NETWORK') {
-      alert("Network error: Unable to reach the server. Please check your connection or the server status.");
-    } else {
-      alert(`An error occurred: ${error.response ? error.response.data.error : error.message}`);
-    }
-  }
-};
-
+  };
 
   return (
-    <div className="min-h-screen bg-white text-gray-900 font-sans overflow-hidden">
-      {/* Header Section */}
-      <header className="relative w-full h-96 bg-gradient-to-br from-indigo-600 to-purple-700 overflow-hidden">
-     
-        {/* Main Content */}
-        <div className="absolute top-20 inset-0 z-10 flex flex-col items-center justify-center text-center text-white">
-          <img src="/fba.png" alt="Logo" className="h-65 w-auto" />
-          <p className="text-xl md:text-2xl font-medium mb-8 drop-shadow-md">
-            Full Business Audit - AI-Powered Insights for Your Company
-          </p>
+    <div className="min-h-screen bg-white overflow-hidden">
+      {/* Animated Background */}
+      <div className="fixed inset-0 bg-gradient-to-br from-blue-50 to-purple-50">
+        <div
+          className="absolute inset-0"
+          style={{
+            background:
+              "radial-gradient(circle at 50% 50%, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0) 100%)",
+          }}
+        ></div>
+        <div className="absolute top-0 left-0 w-full h-full overflow-hidden">
+          {[...Array(20)].map((_, i) => (
+            <div
+              key={i}
+              className="absolute bg-white/30 rounded-full blur-xl animate-float"
+              style={{
+                width: Math.random() * 300 + 100 + "px",
+                height: Math.random() * 300 + 100 + "px",
+                left: Math.random() * 100 + "%",
+                top: Math.random() * 100 + "%",
+                animationDelay: `${Math.random() * 5}s`,
+                animationDuration: `${Math.random() * 10 + 10}s`,
+              }}
+            />
+          ))}
         </div>
+      </div>
 
-        {/* Background Layers */}
-        <div className="absolute inset-0 z-0">
-          <div className="w-full h-full bg-opacity-50 bg-black"></div>
-          <div className="absolute bottom-0 left-0 w-full h-48 bg-gradient-to-t from-white to-transparent"></div>
+      {/* Navigation */}
+      <nav
+        className={`fixed w-full z-50 transition-all duration-300 ${
+          scrolled ? "bg-white/80 backdrop-blur-lg shadow-lg" : "bg-transparent"
+        }`}
+      >
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="flex items-center justify-between h-20">
+            <img src="/fba.png" alt="Logo" className="h-30" />
+            <div className="hidden md:flex items-center space-x-8">
+              <button
+                onClick={() => navigate("/companies")}
+                className="px-6 py-2.5 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-full hover:shadow-lg hover:scale-105 transition-all duration-300"
+              >
+                Audit List
+              </button>
+            </div>
+          </div>
         </div>
-      </header>
+      </nav>
 
-      {/* Main Content Section */}
-      <main className="relative z-20 px-6 py-12 md:py-24">
+      {/* Main Content */}
+      <main className="relative pt-20">
+        <div className="max-w-7xl mx-auto px-6">
+          <div className="grid lg:grid-cols-2 gap-12 items-center min-h-[calc(100vh-5rem)]">
+            {/* Left Column */}
+            <div className="relative z-10">
+              <div className="relative">
+                <div className="absolute -left-4 -top-4 w-20 h-20 bg-blue-200 rounded-full blur-2xl opacity-60 animate-pulse" />
+                <div className="absolute -right-4 -bottom-4 w-20 h-20 bg-purple-200 rounded-full blur-2xl opacity-60 animate-pulse delay-700" />
+                <h1 className="text-5xl md:text-6xl lg:text-7xl font-bold leading-tight mb-6">
+                  Future of
+                  <span className="block mt-2 bg-gradient-to-r from-blue-600 via-purple-600 to-blue-600 bg-clip-text text-transparent animate-gradient bg-300">
+                    Business Analytics
+                  </span>
+                </h1>
+              </div>
 
-        <div className="max-w-6xl mx-auto">
-          {/* Hero Section */}
-          <section className="mb-16 text-center">
-            <h2 className="text-4xl font-bold text-gray-900 mb-6">
-              Transform Your Business with FBA.AI
-            </h2>
-            <p className="text-lg text-gray-700">
-              Our AI engine analyzes your business data and generates a detailed
-              audit report tailored to your needs.
-            </p>
-          </section>
+              <p className="text-xl text-gray-600 mb-8 max-w-xl">
+                Transform your business with AI-powered insights and real-time
+                analytics
+              </p>
 
-          {/* Form Section */}
-          <section className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-            {/* Left Side: Form */}
-            <div className="bg-white p-8 rounded-2xl shadow-lg border border-gray-100">
-              <h3 className="text-2xl font-semibold text-gray-900 mb-6">
-                Free FBA Full Business Audit
-              </h3>
-              <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                  <label
-                    htmlFor="company_name"
-                    className="block text-sm font-medium text-gray-700 mb-2"
-                  >
-                    Company Name
-                  </label>
-                  <input
-                    type="text"
-                    name="company_name"
-                    id="company_name"
-                    value={formData.company_name}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
+              {/* Stats Grid */}
+              <div className="grid grid-cols-3 gap-6 mb-12">
+                {[
+                  { label: "Accuracy", value: "99.9%" },
+                  { label: "Analysis", value: "24/7" },
+                  { label: "Reports", value: "500+" },
+                ].map((stat, i) => (
+                  <StatCard key={i} {...stat} />
+                ))}
+              </div>
 
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="registration_number"
-                    className="block text-sm font-medium text-gray-700 mb-2"
-                  >
-                    Registration Number
-                  </label>
-                  <input
-                    type="text"
-                    name="registration_number"
-                    id="registration_number"
-                    value={formData.registration_number}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="website"
-                    className="block text-sm font-medium text-gray-700 mb-2"
-                  >
-                    Website URL
-                  </label>
-                  <input
-                    type="text"
-                    name="website"
-                    id="website"
-                    value={formData.website}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="linkedin"
-                    className="block text-sm font-medium text-gray-700 mb-2"
-                  >
-                    LinkedIn URL
-                  </label>
-                  <input
-                    type="url"
-                    name="linkedin"
-                    id="linkedin"
-                    value={formData.linkedin}
-                    onChange={handleChange}
-                    className="w-full px-4 py-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
-
-                  />
-                </div>
-                <button
-                  type="submit"
-                  disabled={isLoading}
-                  className="w-full py-3 bg-indigo-600 text-white font-semibold rounded-md shadow-md hover:bg-indigo-700 transition duration-300 disabled:opacity-70 disabled:cursor-not-allowed"
-                >
-                  {isLoading ? (
-                    <svg
-                      className="animate-spin h-5 w-5 mx-auto text-white"
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
+              {/* Feature Tags */}
+              <div className="flex flex-wrap gap-3">
+                {["AI Analytics", "Real-time Data", "Smart Insights"].map(
+                  (tag, i) => (
+                    <span
+                      key={i}
+                      className="px-6 py-2 bg-white/50 backdrop-blur-md rounded-full text-gray-700 border border-gray-200 hover:border-blue-400 transition-all duration-300 cursor-default"
                     >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                  ) : (
-                    "Generate Audit Report"
-                  )}
-                </button>
-              </form>
+                      {tag}
+                    </span>
+                  )
+                )}
+              </div>
             </div>
 
-            {/* Right Side: Cooler Component */}
-            <div className="relative w-full h-96 bg-gray-100 rounded-2xl overflow-hidden shadow-lg">
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-48 h-48 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-full shadow-lg transform rotate-45 animate-pulse"></div>
-                <div className="absolute w-32 h-32 bg-white rounded-full shadow-lg transform -rotate-45 animate-bounce"></div>
-                <div className="absolute w-16 h-16 bg-indigo-600 rounded-full shadow-lg animate-spin-slow"></div>
-                <svg
-                  className="absolute w-24 h-24 text-white opacity-90"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                  ></path>
-                </svg>
+            {/* Right Column - Form */}
+            <div className="relative">
+              <div className="absolute inset-0 bg-gradient-to-r from-blue-600/5 to-purple-600/5 rounded-3xl transform rotate-6 scale-105" />
+              <div className="absolute inset-0 bg-white/50 backdrop-blur-xl rounded-3xl shadow-2xl" />
+              <div className="relative bg-white/80 backdrop-blur-xl rounded-3xl shadow-xl p-8 hover:shadow-2xl transition-all duration-500">
+                <h2 className="text-2xl font-bold mb-6">
+                  Start Your Free Analysis
+                </h2>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  {Object.entries(formData).map(([key, value]) => (
+                    <FormInput
+                      key={key}
+                      label={key
+                        .split("_")
+                        .map(
+                          (word) => word.charAt(0).toUpperCase() + word.slice(1)
+                        )
+                        .join(" ")}
+                      name={key}
+                      value={value}
+                      onChange={handleChange}
+                    />
+                  ))}
+                  <button
+                    type="submit"
+                    disabled={isLoading}
+                    className="w-full py-3 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-xl hover:shadow-lg hover:scale-[1.02] transition-all duration-300 disabled:opacity-70"
+                  >
+                    {isLoading ? (
+                      <LoadingSpinner />
+                    ) : (
+                      "Generate Free Audit Report"
+                    )}
+                  </button>
+                </form>
               </div>
             </div>
-          </section>
-
-          {/* Features Section */}
-          <section className="mt-24">
-            <h2 className="text-3xl font-bold text-gray-900 text-center mb-12">
-              Why Choose FBA.AI?
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 text-center">
-                <svg
-                  className="w-12 h-12 mx-auto text-indigo-600 mb-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                  ></path>
-                </svg>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  AI-Powered Analysis
-                </h3>
-                <p className="text-gray-700">
-                  Our advanced AI engine ensures accurate and actionable
-                  insights.
-                </p>
-              </div>
-              <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 text-center">
-                <svg
-                  className="w-12 h-12 mx-auto text-indigo-600 mb-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                  ></path>
-                </svg>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  Comprehensive Reports
-                </h3>
-                <p className="text-gray-700">
-                  Detailed reports covering all aspects of your business.
-                </p>
-              </div>
-              <div className="bg-white p-6 rounded-2xl shadow-lg border border-gray-100 text-center">
-                <svg
-                  className="w-12 h-12 mx-auto text-indigo-600 mb-4"
-                  fill="none"
-                  stroke="currentColor"
-                  viewBox="0 0 24 24"
-                  xmlns="http://www.w3.org/2000/svg"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth="2"
-                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                  ></path>
-                </svg>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
-                  User-Friendly Interface
-                </h3>
-                <p className="text-gray-700">
-                  Simple and intuitive design for seamless user experience.
-                </p>
-              </div>
-            </div>
-          </section>
+          </div>
         </div>
       </main>
 
-      {/* Footer Section */}
-      <footer className="bg-gray-50 py-12 text-center text-gray-600">
-        &copy; 2025 FBA.AI. All rights reserved.
-      </footer>
+      <style jsx>{`
+        @keyframes float {
+          0%,
+          100% {
+            transform: translateY(0) scale(1);
+          }
+          50% {
+            transform: translateY(-20px) scale(1.05);
+          }
+        }
+        .animate-float {
+          animation: float linear infinite;
+        }
+        @keyframes gradient {
+          0% {
+            background-position: 0% 50%;
+          }
+          50% {
+            background-position: 100% 50%;
+          }
+          100% {
+            background-position: 0% 50%;
+          }
+        }
+        .animate-gradient {
+          animation: gradient 6s linear infinite;
+        }
+        .bg-300 {
+          background-size: 300% 300%;
+        }
+      `}</style>
     </div>
   );
 };
+
+const NavLink = ({ children }) => (
+  <a className="text-gray-600 hover:text-gray-900 transition-colors cursor-pointer">
+    {children}
+  </a>
+);
+
+const StatCard = ({ label, value }) => (
+  <div className="group bg-white/50 backdrop-blur-md p-4 rounded-2xl border border-gray-200 hover:border-blue-400 transition-all duration-300">
+    <div className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+      {value}
+    </div>
+    <div className="text-gray-600 group-hover:text-gray-900 transition-colors">
+      {label}
+    </div>
+  </div>
+);
+
+const FormInput = ({ label, ...props }) => (
+  <div className="relative">
+    <input
+      {...props}
+      placeholder={label}
+      className="w-full px-4 py-3 bg-white/50 backdrop-blur-md rounded-xl border border-gray-200 focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 outline-none transition-all placeholder:text-gray-400"
+    />
+  </div>
+);
+
+const LoadingSpinner = () => (
+  <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin mx-auto" />
+);
 
 export default LandingPage;
