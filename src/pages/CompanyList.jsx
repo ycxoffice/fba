@@ -11,15 +11,22 @@ const CompanyList = () => {
   const [page, setPage] = useState(1);
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
-  const limit = 10;
+  const limit = 40;
 
   useEffect(() => {
     setLoading(true);
     fetch(`${BASE_URL}/api/audit?search=${search}&page=${page}&limit=${limit}`)
       .then((res) => res.json())
       .then((data) => {
-        setCompanies(data.companies);
+        // Create a reversed copy of the companies array
+        const reversedCompanies = [...data.companies].reverse();
+
+        setCompanies(reversedCompanies);
         setTotal(data.total);
+        setLoading(false);
+      })
+      .catch((error) => {
+        console.error("Error fetching companies:", error);
         setLoading(false);
       });
   }, [search, page]);
