@@ -15,7 +15,7 @@ class Audit(Document):
 
     # Store full API response
     properties = DictField(default={})
-    info = DictField(default={})
+
 
     def to_json(self):
         """ ✅ Fix serialization issue using `json_util.dumps` """
@@ -25,6 +25,5 @@ class Audit(Document):
             "registration_number": self.registration_number,
             "website_url": self.website_url,
             "linkedin_url": self.linkedin_url,
-            "properties": self.properties,
-            "info": self.info
+            "properties": self.properties
         }

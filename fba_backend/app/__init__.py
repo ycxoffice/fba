@@ -19,7 +19,7 @@ def create_app():
 
     # Connect to MongoDB Atlas
     MONGO_URI = os.getenv("MONGO_URI")
-    connect(db="fba", host=MONGO_URI)
+    connect(db="fba_dev", host=MONGO_URI)
 
     # Health Check Route
     @app.route("/health")
