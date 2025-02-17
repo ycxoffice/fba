@@ -8,10 +8,8 @@ def init_db(app):
     db.init_app(app)
 
 class Audit(Document):
-    company_name = StringField(required=True, max_length=100)
-    registration_number = IntField(required=True, unique=True)
+    company_name = StringField(required=True, max_length=100, unique=True)
     website_url = StringField(required=True, max_length=255)
-    linkedin_url = StringField(required=True, max_length=255)
 
     # Store full API response
     properties = DictField(default={})
@@ -21,11 +19,10 @@ class Audit(Document):
         """ ✅ Fix serialization issue using `json_util.dumps` """
         return {
             "id": str(self.id),  # ✅ Convert ObjectId to string
+            "properties": self.properties,
             "company_name": self.company_name,
-            "registration_number": self.registration_number,
             "website_url": self.website_url,
-            "linkedin_url": self.linkedin_url,
-            "properties": self.properties
+
         }
 
 class Executives(Document):
@@ -36,7 +33,7 @@ class Executives(Document):
     business_history = ListField(DictField(), default=[])
 
     meta = {'collection': 'executives'}
-
+ 
     def to_json(self):
         """ ✅ Fix serialization issue using `json_util.dumps` """
         return {
@@ -50,6 +47,7 @@ class Executives(Document):
 
 # New Financial Collection
 class Financial(Document):
+    company_name = StringField(required=True , unique=True)
     source = StringField(required=True, max_length=255)
     revenue = IntField(default=None)
     net_profit_loss = IntField(default=None)
@@ -74,6 +72,7 @@ class Financial(Document):
         """ ✅ Fix serialization issue using `json_util.dumps` """
         return {
             "id": str(self.id),  # ✅ Convert ObjectId to string
+            "company_name" : self.company_name,
             "source": self.source,
             "revenue": self.revenue,
             "net_profit_loss": self.net_profit_loss,
@@ -95,7 +94,7 @@ class Financial(Document):
             "government_incentives": self.government_incentives
         }
 class LegalRisk(Document):
-    company_name = StringField(required=True, max_length=100)
+    company_name = StringField(required=True, max_length=100 , unique=True)
     copyrights = ListField(StringField(), default=[])
     data_breaches = ListField(StringField(), default=[])
     fatf_blacklist = ListField(StringField(), default=[])

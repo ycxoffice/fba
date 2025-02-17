@@ -74,45 +74,55 @@ def fetch_fmp_data(endpoint, company_symbol):
 
 
 def calculate_financial_attributes(data):
-    """Calculate financial attributes from the API data."""
+    """Calculate financial attributes from the API data safely."""
     attributes = {}
-    if data:
-        report = data[0]  # Assuming we're interested in the most recent report
 
-        # Map API fields to financial attributes
-        attributes["Revenue"] = report.get("revenuefromcontractwithcustomerexcludingassessedtax")
-        attributes["Net Profit/Loss"] = report.get("netincomeloss")
-        attributes["Total Assets"] = report.get("assets")
-        attributes["Total Liabilities"] = report.get("liabilities")
-        attributes["EBITDA"] = report.get("operatingincomeloss") + report.get("depreciationdepletionandamortization", 0)
-        attributes["Free Cash Flow"] = report.get("netcashprovidedbyusedinoperatingactivities") - report.get(
-            "paymentstoacquirepropertyplantandequipment", 0)
-        attributes["Working Capital"] = report.get("assetscurrent") - report.get("liabilitiescurrent")
+    if not data:
+        return attributes  # Return empty if no data is available
 
-        # Calculate derived metrics
-        if attributes["Revenue"]:
-            attributes["Gross Margin"] = (attributes["Revenue"] - report.get("costofrevenue", 0)) / attributes[
-                "Revenue"]
-            attributes["Operating Margin"] = attributes["EBITDA"] / attributes["Revenue"]
+    report = data[0]  # Use the latest report
 
-        if attributes["Total Liabilities"] and attributes["Total Assets"]:
-            attributes["Debt-to-Equity Ratio"] = attributes["Total Liabilities"] / (
-                        attributes["Total Assets"] - attributes["Total Liabilities"])
+    # Helper function to safely extract numerical values
+    def safe_get(key, default=0):
+        value = report.get(key, default)
+        return value if isinstance(value, (int, float)) else default
 
-        if report.get("assetscurrent") and report.get("liabilitiescurrent"):
-            attributes["Current Ratio"] = report.get("assetscurrent") / report.get("liabilitiescurrent")
-            attributes["Quick Ratio"] = (report.get("assetscurrent") - report.get("inventory", 0)) / report.get(
-                "liabilitiescurrent")
+    # Map API fields to financial attributes
+    attributes["Revenue"] = safe_get("revenuefromcontractwithcustomerexcludingassessedtax")
+    attributes["Net Profit/Loss"] = safe_get("netincomeloss")
+    attributes["Total Assets"] = safe_get("assets")
+    attributes["Total Liabilities"] = safe_get("liabilities")
 
-        # Placeholder for attributes not directly calculable from the data
-        attributes["Credit Score"] = "N/A"
-        attributes["Loan History"] = "N/A"
-        attributes["Outstanding Debt"] = report.get("longtermdebt")
-        attributes["Payment History"] = "N/A"
-        attributes["Corporate Tax Filings"] = "N/A"
-        attributes["VAT/GST Records"] = "N/A"
-        attributes["Unpaid Taxes"] = report.get("unrecognizedtaxbenefits")
-        attributes["Government Incentives"] = "N/A"
+    attributes["EBITDA"] = safe_get("operatingincomeloss") + safe_get("depreciationdepletionandamortization")
+    attributes["Free Cash Flow"] = safe_get("netcashprovidedbyusedinoperatingactivities") - safe_get("paymentstoacquirepropertyplantandequipment")
+    attributes["Working Capital"] = safe_get("assetscurrent") - safe_get("liabilitiescurrent")
+
+    # Calculate derived metrics safely
+    revenue = attributes["Revenue"]
+    if revenue:
+        attributes["Gross Margin"] = (revenue - safe_get("costofrevenue")) / revenue
+        attributes["Operating Margin"] = attributes["EBITDA"] / revenue if attributes["EBITDA"] else 0
+
+    total_liabilities = attributes["Total Liabilities"]
+    total_assets = attributes["Total Assets"]
+    if total_liabilities and total_assets:
+        attributes["Debt-to-Equity Ratio"] = total_liabilities / (total_assets - total_liabilities) if total_assets - total_liabilities else 0
+
+    current_assets = safe_get("assetscurrent")
+    current_liabilities = safe_get("liabilitiescurrent")
+    if current_assets and current_liabilities:
+        attributes["Current Ratio"] = current_assets / current_liabilities if current_liabilities else 0
+        attributes["Quick Ratio"] = (current_assets - safe_get("inventory")) / current_liabilities if current_liabilities else 0
+
+    # Placeholder for attributes not directly calculable
+    attributes["Credit Score"] = "N/A"
+    attributes["Loan History"] = "N/A"
+    attributes["Outstanding Debt"] = safe_get("longtermdebt")
+    attributes["Payment History"] = "N/A"
+    attributes["Corporate Tax Filings"] = "N/A"
+    attributes["VAT/GST Records"] = "N/A"
+    attributes["Unpaid Taxes"] = safe_get("unrecognizedtaxbenefits")
+    attributes["Government Incentives"] = "N/A"
 
     return attributes
 

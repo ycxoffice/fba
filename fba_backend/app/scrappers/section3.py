@@ -10,17 +10,24 @@ import requests
 import json
 import time
 import re
+
 # SerpApi key
 API_KEY = "b697fa981b7fcca86b395a157754998cf5270238feadf4283cf542b5227f38bf"
 SERP_API_URL = "https://serpapi.com/search.json"
-# Configure Selenium WebDriver
-options = Options()
-options.add_argument("--headless")
-options.add_argument("--disable-gpu")
-options.add_argument("--window-size=1920,1080")
-driver = webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+
+# Query template
 QUERY_TEMPLATE = "Past Business History of {company} Previous Companies of Executives, Past Bankruptcies, Regulatory Actions"
-def handle_cookie_consent():
+
+def get_driver():
+    """Initialize and return a new Selenium WebDriver instance."""
+    options = Options()
+    options.add_argument("--headless")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--window-size=1920,1080")
+
+    return webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+
+def handle_cookie_consent(driver):
     """Handle cookie consent overlay if present."""
     try:
         consent_button = WebDriverWait(driver, 5).until(
@@ -30,6 +37,7 @@ def handle_cookie_consent():
         print("Cookie consent accepted.")
     except TimeoutException:
         print("No cookie consent overlay found.")
+
 def get_ticker_symbol(company_name):
     """Fetch the stock ticker symbol for a given company name using SerpApi."""
     print(f"Fetching ticker symbol for {company_name}...")
@@ -49,13 +57,16 @@ def get_ticker_symbol(company_name):
                 return ticker.upper()
     print(f"Could not find a ticker symbol for {company_name}.")
     return None
+
 def scrape_key_executives(ticker):
     """Scrape the Key Executives table from Yahoo Finance."""
-    url = f"https://finance.yahoo.com/quote/{ticker}/profile"
-    print(f"Scraping key executives for {ticker}...")
-    driver.get(url)
-    handle_cookie_consent()
+    driver = get_driver()
     try:
+        url = f"https://finance.yahoo.com/quote/{ticker}/profile"
+        print(f"Scraping key executives for {ticker}...")
+        driver.get(url)
+        handle_cookie_consent(driver)
+
         table = WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, "table.yf-mj92za"))
         )
@@ -75,13 +86,18 @@ def scrape_key_executives(ticker):
     except TimeoutException:
         print(f"Key Executives table not found for {ticker}.")
         return []
+    finally:
+        driver.quit()
+
 def scrape_esg_scores(ticker):
     """Scrape ESG scores from Yahoo Finance."""
-    url = f"https://finance.yahoo.com/quote/{ticker}/sustainability"
-    print(f"Scraping ESG scores for {ticker}...")
-    driver.get(url)
-    handle_cookie_consent()
+    driver = get_driver()
     try:
+        url = f"https://finance.yahoo.com/quote/{ticker}/sustainability"
+        print(f"Scraping ESG scores for {ticker}...")
+        driver.get(url)
+        handle_cookie_consent(driver)
+
         esg_section = WebDriverWait(driver, 10).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, "section[data-testid='esg-cards']"))
         )
@@ -99,6 +115,9 @@ def scrape_esg_scores(ticker):
             "Social Risk Score": "N/A",
             "Governance Risk Score": "N/A",
         }
+    finally:
+        driver.quit()
+
 def fetch_linkedin_profile(name):
     """Search for the LinkedIn profile of an executive using SerpApi."""
     print(f"Searching LinkedIn profile for {name}...")
@@ -117,14 +136,7 @@ def fetch_linkedin_profile(name):
                 return link
     print(f"LinkedIn profile for {name} not found.")
     return "Not Found"
-def fetch_executive_linkedin_profiles(executives):
-    """Fetch LinkedIn profiles for all executives using SerpApi."""
-    linkedin_profiles = {}
-    for exec in executives:
-        name = re.sub(r"(Mr\.|Ms\.|Dr\.|Prof\.)", "", exec["Name"]).strip()  # Remove honorifics
-        linkedin_profiles[exec["Name"]] = fetch_linkedin_profile(name)
-        time.sleep(1)  # Prevent rate limiting
-    return linkedin_profiles
+
 def fetch_business_history(company):
     """Fetch past business history using SerpApi."""
     print(f"Fetching business history for {company}...")
@@ -146,26 +158,3 @@ def fetch_business_history(company):
         ]
     print(f"Error fetching business history for {company}: {response.status_code}")
     return []
-
-# def main():
-#     """Main function to get user input, fetch ticker, and scrape data."""
-#     company_name = input("Enter the name of the company: ").strip()
-#     ticker = get_ticker_symbol(company_name)
-#     if not ticker:
-#         print("Could not retrieve ticker symbol. Exiting.")
-#         return
-#     executives = scrape_key_executives(ticker)
-#     esg_scores = scrape_esg_scores(ticker)
-#     linkedin_profiles = fetch_executive_linkedin_profiles(executives)
-#     business_history = fetch_business_history(company_name)
-#     output = {
-#         "Company": company_name,
-#         "Ticker Symbol": ticker,
-#         "Key Executives": executives,
-#         "ESG Scores": esg_scores,
-#         #"LinkedIn Profiles": linkedin_profiles,
-#         "Business History": business_history
-#     }
-#     print("\n--- JSON Output ---")
-#     print(json.dumps(output, indent=4))
-#     driver.quit()

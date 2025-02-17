@@ -5,7 +5,6 @@ import axios from "axios";
 const LandingPage = () => {
   const [formData, setFormData] = useState({
     company_name: "",
-    registration_number: "",
     website: "",
     linkedin: "",
   });
@@ -203,7 +202,7 @@ const LandingPage = () => {
         </div>
       </main>
 
-      <style jsx>{`
+      <style>{`
         @keyframes float {
           0%,
           100% {

@@ -2,6 +2,9 @@ from flask import Blueprint, request, jsonify
 from ..models.audit import Audit , Executives , LegalRisk , Financial
 import requests
 from app.scrappers.section3 import get_ticker_symbol , fetch_business_history , scrape_esg_scores , scrape_key_executives
+from app.scrappers.section2 import main
+from app.scrappers.section5 import main5
+import threading
 
 
 
@@ -10,11 +13,12 @@ audit_bp = Blueprint("audit", __name__)
 RAPIDAPI_LINKEDIN_HOST = "linkedin-data-api.p.rapidapi.com"
 RAPIDAPI_KEY = "5de868c170mshc545ef5304b9b72p13d8edjsn418d6a210780"
 
+
 @audit_bp.route("", methods=["POST"])
 def create_audit():
     try:
         data = request.json
-        required_fields = ["company_name", "registration_number", "website"]
+        required_fields = ["company_name", "website"]
 
         # Validate required fields
         missing_fields = [field for field in required_fields if field not in data]
@@ -22,9 +26,8 @@ def create_audit():
             return jsonify({"error": f"Missing fields: {', '.join(missing_fields)}"}), 400
 
         website_url = data["website"]
-        linkedin_url = data.get("linkedin", "")
 
-       # Fetch Company Intelligence data
+        # Fetch Company Intelligence data
         company_data = {}
         try:
             company_response = requests.get(
@@ -41,23 +44,99 @@ def create_audit():
         except requests.RequestException as req_err:
             return jsonify({"error": "Error connecting to LinkedIn Data API", "details": str(req_err)}), 500
 
-
-        # Create and save the Audit document
+        # Save the Audit document immediately
         audit = Audit(
             company_name=data["company_name"],
-            registration_number=data["registration_number"],
             website_url=website_url,
-            linkedin_url=linkedin_url,
             properties=company_data  # ✅ Store full API response in properties
         )
-
         audit.save()
 
-        return jsonify({"message": "Audit saved", "audit": audit.to_json()}), 201
+        company_name = data["company_name"].strip()
+
+        # Start background processing in separate threads
+        threading.Thread(target=process_executive_data, args=(company_name,), daemon=True).start()
+        threading.Thread(target=process_financial_data, args=(company_name,), daemon=True).start()
+        threading.Thread(target=scrape_company_data, args=(company_name,), daemon=True).start()
+
+
+        return jsonify({"message": "Audit saved and background processing started", "audit": audit.to_json()}), 201
 
     except Exception as e:
         return jsonify({"error": "Internal Server Error", "details": str(e)}), 500
 
+
+def process_executive_data(company_name):
+    """Background function to process executive data after Audit is saved."""
+    try:
+        ticker = get_ticker_symbol(company_name)
+
+        if not ticker:
+            return
+
+        executives = scrape_key_executives(ticker)
+        esg_scores = scrape_esg_scores(ticker)
+        business_history = fetch_business_history(company_name)
+
+        # Check if the company already exists in MongoDB
+        existing_record = Executives.objects(company_name=company_name).first()
+        if existing_record:
+            return  # If record exists, do nothing
+
+        # Save the data to the "Executives" collection
+        executive_record = Executives(
+            company_name=company_name,
+            ticker_symbol=ticker,
+            key_executives=executives,
+            esg_scores=esg_scores,
+            business_history=business_history
+        )
+        executive_record.save()
+
+    except Exception as e:
+        print(f"Error in executive data processing for {company_name}: {str(e)}")  # Log the error
+
+
+def process_financial_data(company_name):
+    """Background function to fetch and store financial data."""
+    try:
+        result = main(company_name)
+
+        if not result:
+            print(f"No financial data found for {company_name}")
+            return
+
+        financial_data = result[0]  # Assuming result is a list, take the first element
+
+        financial = Financial(
+            company_name=company_name,
+            source=financial_data.get("Source"),
+            revenue=financial_data.get("Revenue"),
+            net_profit_loss=financial_data.get("Net Profit/Loss"),
+            total_assets=financial_data.get("Total Assets"),
+            total_liabilities=financial_data.get("Total Liabilities"),
+            ebitda=financial_data.get("EBITDA"),
+            free_cash_flow=financial_data.get("Free Cash Flow"),
+            working_capital=financial_data.get("Working Capital"),
+            debt_to_equity_ratio=financial_data.get("Debt-to-Equity Ratio"),
+            current_ratio=financial_data.get("Current Ratio"),
+            quick_ratio=financial_data.get("Quick Ratio"),
+            credit_score=financial_data.get("Credit Score", "N/A"),
+            loan_history=financial_data.get("Loan History", "N/A"),
+            outstanding_debt=financial_data.get("Outstanding Debt"),
+            payment_history=financial_data.get("Payment History", "N/A"),
+            corporate_tax_filings=financial_data.get("Corporate Tax Filings", "N/A"),
+            vat_gst_records=financial_data.get("VAT/GST Records", "N/A"),
+            unpaid_taxes=financial_data.get("Unpaid Taxes"),
+            government_incentives=financial_data.get("Government Incentives", "N/A")
+        )
+
+        # Save the financial data to the database
+        financial.save()
+        print(f"Financial data for {company_name} saved successfully.")
+
+    except Exception as e:
+        print(f"Error in financial data processing for {company_name}: {str(e)}")  # Log the error
 
 @audit_bp.route("/", methods=["GET"])
 def get_companies():
@@ -85,114 +164,22 @@ def get_companies():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@audit_bp.route("/company-info", methods=["POST"])
-def get_company_info():
-    """API endpoint to fetch company info and save it in MongoDB."""
-    try:
-        data = request.get_json()
-        if not data or "company_name" not in data:
-            return jsonify({"error": "Missing 'company_name' in request body"}), 400
-
-        company_name = data["company_name"].strip()
-        ticker = get_ticker_symbol(company_name)
-
-        if not ticker:
-            return jsonify({"error": "Could not retrieve ticker symbol"}), 404
-
-        executives = scrape_key_executives(ticker)
-        esg_scores = scrape_esg_scores(ticker)
-        business_history = fetch_business_history(company_name)
-
-        # 🔍 Check if the company already exists in MongoDB
-        existing_record = Executives.objects(company_name=company_name).first()
-        if existing_record:
-            return jsonify({"message": "Company info already exists", "data": existing_record.to_json()}), 200
-
-        # 📝 Save the data to the "Executives" collection
-        executive_record = Executives(
-            company_name=company_name,
-            ticker_symbol=ticker,
-            key_executives=executives,
-            esg_scores=esg_scores,
-            business_history=business_history
-        )
-        executive_record.save()
-
-        return jsonify({"message": "Company info saved successfully", "data": executive_record.to_json()}), 201
-
-    except Exception as e:
-        print(f"❌ ERROR: {str(e)}")  # Log error for debugging
-        return jsonify({"error": "Internal Server Error", "details": str(e)}), 500
-
-from app.scrappers.section2 import main
-from app.scrappers.section5 import main5
 
 
 
-@audit_bp.route('/financial-data', methods=['POST'])
-def get_financial_data():
-    try:
-        # Parse the JSON request body to get company name
-        data = request.get_json()
-        company_name = data.get('company_name', None)
-
-        if not company_name:
-            return jsonify({"error": "company_name is required"}), 400
-
-        # Call the main function to get the financial data
-        result = main(company_name)
-
-        # Check if the result contains valid financial data
-        if not result:
-            return jsonify({"error": "No financial data found for the given company"}), 404
-
-        # Assuming 'result' contains the financial data in a format that matches the Financial model
-        financial_data = result[0]  # Since `result` is a list, get the first element (modify based on your structure)
-
-        # Create a new Financial document from the result and save it
-        financial = Financial(
-            source=financial_data.get("Source"),
-            revenue=financial_data.get("Revenue"),
-            net_profit_loss=financial_data.get("Net Profit/Loss"),
-            total_assets=financial_data.get("Total Assets"),
-            total_liabilities=financial_data.get("Total Liabilities"),
-            ebitda=financial_data.get("EBITDA"),
-            free_cash_flow=financial_data.get("Free Cash Flow"),
-            working_capital=financial_data.get("Working Capital"),
-            debt_to_equity_ratio=financial_data.get("Debt-to-Equity Ratio"),
-            current_ratio=financial_data.get("Current Ratio"),
-            quick_ratio=financial_data.get("Quick Ratio"),
-            credit_score=financial_data.get("Credit Score", "N/A"),
-            loan_history=financial_data.get("Loan History", "N/A"),
-            outstanding_debt=financial_data.get("Outstanding Debt"),
-            payment_history=financial_data.get("Payment History", "N/A"),
-            corporate_tax_filings=financial_data.get("Corporate Tax Filings", "N/A"),
-            vat_gst_records=financial_data.get("VAT/GST Records", "N/A"),
-            unpaid_taxes=financial_data.get("Unpaid Taxes"),
-            government_incentives=financial_data.get("Government Incentives", "N/A")
-        )
-
-        # Save the financial data to the database
-        financial.save()
-
-        # Return the result as JSON using jsonify, Flask will automatically handle the conversion
-        return jsonify(financial.to_json()), 200
-
-    except Exception as e:
-        # Handle any exceptions that occur during the request processing
-        return jsonify({"error": str(e)}), 500
 
 
-@audit_bp.route('/risk', methods=['POST'])
-def scrape_company_data():
+
+
+def scrape_company_data(company_name):
     import json
     try:
         # Parse the JSON request body to get the company name
-        data = request.get_json()
-        company_name = data.get('company_name')
+        # data = request.get_json()
+        company_name = company_name.strip()
 
         if not company_name:
-            return jsonify({"error": "company_name is required"}), 400
+            return
 
         # Call the main function to scrape company data
         result_json = main5(company_name)
@@ -214,26 +201,65 @@ def scrape_company_data():
         # Save to MongoDB
         legal_risk.save()
 
-        return jsonify({"message": "Data saved successfully", "risk": legal_risk.to_json()}), 201
-
+        print(f"Saved Successfully {company_name}")
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        print(f"Error in risk data processing for {company_name}: {str(e)}")  # Log the error
 
 
-# Get audit by company_name
 @audit_bp.route("/<company_name>", methods=["GET"])
 def get_audit_by_company_name(company_name):
     try:
+        # Fetch audit data from different collections
         audit = Audit.objects(company_name=company_name).first()
-        print(f"{audit}")
-        if not audit:
-            return jsonify({"error": "Audit not found"}), 404
+        audit_executives = Executives.objects(company_name=company_name).first()
+        financial = Financial.objects(company_name=company_name).first()
+        legal_risk = LegalRisk.objects(company_name=company_name).first()
 
-        return jsonify({
-            "companyName": audit.company_name,
+        # If all collections return empty, return 404
+        if not any([audit, audit_executives, financial, legal_risk]):
+            return jsonify({"error": "No audit data found for the given company"}), 404
+
+        # Manually remove unnecessary fields from 'properties' inside 'audit'
+        if audit and "properties" in audit.to_mongo():
+            properties = audit.properties
+            # Remove unnecessary nested fields inside properties, but keep description
+            properties.pop("backgroundCoverImages", None)
+            properties.pop("callToAction", None)
+
+            # Reorder properties to make description the first field if it exists
+            description = properties.get("description")
+            if description:
+                # Create a new dictionary with description first
+                properties = {"description": description, **{key: value for key, value in properties.items() if key != "description"}}
+
+        # Helper function to convert MongoEngine documents to JSON without _id
+        def to_json(doc):
+            if doc:
+                doc_dict = doc.to_mongo().to_dict()
+                doc_dict.pop("_id", None)  # Remove the _id field
+                # Ensure 'properties' has description as first attribute
+                if "properties" in doc_dict:
+                    properties = doc_dict["properties"]
+                    # Reorder properties if description is present
+                    description = properties.get("description")
+                    if description:
+                        doc_dict["properties"] = {"description": description, **{key: value for key, value in properties.items() if key != "description"}}
+                return doc_dict
+            return None
+
+        # Construct response structure
+        response_data = {
+            "companyName": company_name,
             "data": {
-                "properties": audit.properties
+                "audit": to_json(audit),  # Cleaned audit data
+                "executives": to_json(audit_executives),
+                "financial": to_json(financial),
+                "legalRisk": to_json(legal_risk)  # Fixed typo here: "legal Risk" => "legalRisk"
             }
-        }), 200
+        }
+
+        return jsonify(response_data), 200  # Return proper JSON response
+
     except Exception as e:
         return jsonify({"error": "Internal Server Error", "details": str(e)}), 500
+
