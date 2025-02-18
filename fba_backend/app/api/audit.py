@@ -4,6 +4,7 @@ import requests
 from app.scrappers.section3 import get_ticker_symbol , fetch_business_history , scrape_esg_scores , scrape_key_executives
 from app.scrappers.section2 import main
 from app.scrappers.section5 import main5
+from app.scrappers.section4 import main4
 import threading
 
 
@@ -11,7 +12,7 @@ import threading
 audit_bp = Blueprint("audit", __name__)
 
 RAPIDAPI_LINKEDIN_HOST = "linkedin-data-api.p.rapidapi.com"
-RAPIDAPI_KEY = "5de868c170mshc545ef5304b9b72p13d8edjsn418d6a210780"
+RAPIDAPI_KEY = "b3e1057148msh3b8f35241e1969fp1a3710jsn0939a32f1193"
 
 
 @audit_bp.route("", methods=["POST"])
@@ -50,7 +51,7 @@ def create_audit():
             website_url=website_url,
             properties=company_data  # ✅ Store full API response in properties
         )
-        audit.save()
+        audit.save() 
 
         company_name = data["company_name"].strip()
 
@@ -205,6 +206,35 @@ def scrape_company_data(company_name):
     except Exception as e:
         print(f"Error in risk data processing for {company_name}: {str(e)}")  # Log the error
 
+@audit_bp.route('/process_companies', methods=['POST'])
+def process_companies():
+    try:
+        data = request.json
+        companies = data.get("companies", [])
+        if not companies:
+            return jsonify({"error": "No companies provided"}), 400
+
+        # Call the main4 function with companies
+        result = main4(companies)
+
+        return jsonify(result), 200
+    except Exception as e:
+        return jsonify({"error": "Internal Server Error", "details": str(e)}), 500
+
+@audit_bp.route('/get_financials', methods=['GET'])
+def get_financials():
+    """Endpoint to fetch financial data for a given company."""
+    company_name = request.args.get('company_name')
+
+    if not company_name:
+        return jsonify({"error": "Missing required parameter: company_name"}), 400
+
+    try:
+        results = main(company_name)
+        return jsonify(results),200
+
+    except Exception as e:
+        return jsonify({"error": f"An error occurred: {str(e)}"}), 500
 
 @audit_bp.route("/<company_name>", methods=["GET"])
 def get_audit_by_company_name(company_name):

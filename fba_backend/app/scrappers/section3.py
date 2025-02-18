@@ -1,3 +1,6 @@
+import os
+import re
+import subprocess
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.chrome.options import Options
@@ -9,34 +12,67 @@ from webdriver_manager.chrome import ChromeDriverManager
 import requests
 import json
 import time
-import re
+from dotenv import load_dotenv
 
-# SerpApi key
-API_KEY = "b697fa981b7fcca86b395a157754998cf5270238feadf4283cf542b5227f38bf"
+# Load environment variables only in local development
+if not os.environ.get('RENDER'):
+    load_dotenv()
+
+# Get API key from environment
+API_KEY = os.environ.get('SERPAPI_KEY')
 SERP_API_URL = "https://serpapi.com/search.json"
 
 # Query template
 QUERY_TEMPLATE = "Past Business History of {company} Previous Companies of Executives, Past Bankruptcies, Regulatory Actions"
 
 def get_driver():
-    """Initialize and return a new Selenium WebDriver instance."""
+    """Initialize Chrome driver with environment-aware configuration"""
     options = Options()
-    options.add_argument("--headless")
-    options.add_argument("--disable-gpu")
     options.add_argument("--window-size=1920,1080")
+    options.add_argument("--disable-gpu")
+    options.add_argument("--headless=new")  # New headless mode
 
-    return webdriver.Chrome(service=Service(ChromeDriverManager().install()), options=options)
+    if os.environ.get('RENDER'):
+        # Render-specific configuration using your existing build command setup
+        chrome_path = '/tmp/chrome/opt/google/chrome/chrome'
+        options.binary_location = chrome_path
+
+        # Auto-detect Chrome version and get matching chromedriver
+        try:
+            # Get Chrome version
+            result = subprocess.run([chrome_path, '--version'],
+                                  capture_output=True, text=True)
+            version = re.search(r'\d+\.\d+\.\d+', result.stdout).group()
+            major_version = version.split('.')[0]
+
+            # Install matching chromedriver
+            service = Service(ChromeDriverManager(version=major_version).install())
+        except Exception as e:
+            print(f"Error initializing ChromeDriver: {e}")
+            service = Service(ChromeDriverManager().install())
+    else:
+        # Windows/local configuration
+        service = Service(ChromeDriverManager().install())
+
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    return webdriver.Chrome(service=service, options=options)
+
+def get_wait_time():
+    """Environment-aware timeout configuration"""
+    return 20 if os.environ.get('RENDER') else 10
 
 def handle_cookie_consent(driver):
     """Handle cookie consent overlay if present."""
     try:
-        consent_button = WebDriverWait(driver, 5).until(
+        consent_button = WebDriverWait(driver, get_wait_time()).until(
             EC.presence_of_element_located((By.CSS_SELECTOR, ".consent-overlay .accept-all"))
         )
         consent_button.click()
         print("Cookie consent accepted.")
     except TimeoutException:
         print("No cookie consent overlay found.")
+
 
 def get_ticker_symbol(company_name):
     """Fetch the stock ticker symbol for a given company name using SerpApi."""
@@ -61,6 +97,8 @@ def get_ticker_symbol(company_name):
 def scrape_key_executives(ticker):
     """Scrape the Key Executives table from Yahoo Finance."""
     driver = get_driver()
+    driver.set_script_timeout(1200)  # Set script timeout to 120 seconds
+
     try:
         url = f"https://finance.yahoo.com/quote/{ticker}/profile"
         print(f"Scraping key executives for {ticker}...")
