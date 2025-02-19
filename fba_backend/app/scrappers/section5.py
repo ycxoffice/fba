@@ -21,48 +21,37 @@ import warnings
 warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
 
 # Load environment variables only in local development
-if not os.environ.get('RENDER'):
-    load_dotenv()
+load_dotenv()
 
 # Environment configuration
 SCRAPER_API_KEY = "6de50d316b80483b7c00a9db6f3cade0"
 
-def get_wait_time():
-    """Return environment-appropriate timeout duration"""
-    return 25 if os.environ.get('RENDER') else 15
-
 def get_driver():
-    """Initialize Chrome driver with environment-aware configuration"""
+    """Initialize Chrome driver for custom VPS deployment"""
     options = Options()
     options.add_argument("--window-size=1920,1080")
     options.add_argument("--disable-gpu")
-
-    if os.environ.get('RENDER'):
-        # Render-specific configuration
-        options.binary_location = '/tmp/chrome/opt/google/chrome/chrome'
-        options.add_argument("--headless=new")
-        options.add_argument("--no-sandbox")
-        options.add_argument("--disable-dev-shm-usage")
-
-        try:
-            # Auto-detect Chrome version
-            chrome_path = options.binary_location
-            result = subprocess.run([chrome_path, '--version'],
-                                   capture_output=True, text=True)
-            version = re.search(r'\d+\.\d+\.\d+', result.stdout).group()
-            major_version = version.split('.')[0]
-
-            # Install matching chromedriver
-            service = Service(ChromeDriverManager(version=major_version).install())
-        except Exception as e:
-            print(f"Error initializing ChromeDriver: {e}")
-            service = Service(ChromeDriverManager().install())
-    else:
-        # Windows/local configuration
-        options.headless = True  # Keep headless for consistency
+    options.add_argument("--headless=new")  # New headless mode
+    options.add_argument("--no-sandbox")
+    options.add_argument("--disable-dev-shm-usage")
+    
+    # Use the system's chromedriver directly
+    chromedriver_path = "/usr/local/bin/chromedriver"  
+    
+    try:
+        service = Service(executable_path=chromedriver_path)
+        driver = webdriver.Chrome(service=service, options=options)
+        return driver
+    except Exception as e:
+        print(f"Error using system chromedriver: {e}")
+        # Fallback to ChromeDriverManager
         service = Service(ChromeDriverManager().install())
+        return webdriver.Chrome(service=service, options=options)
 
-    return webdriver.Chrome(service=service, options=options)
+def get_wait_time():
+    """Environment-aware timeout configuration"""
+    # Increase timeout for production server
+    return 20
 
 ### ==== UK NATIONAL ARCHIVES CASE LAW SCRAPER ==== ###
 def get_total_pages(company_name):
