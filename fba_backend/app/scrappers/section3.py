@@ -14,53 +14,44 @@ import json
 import time
 from dotenv import load_dotenv
 
-# Load environment variables only in local development
-if not os.environ.get('RENDER'):
-    load_dotenv()
+load_dotenv()
 
 # Get API key from environment
-API_KEY = os.environ.get('SERPAPI_KEY')
+API_KEY = "60b64a8d9cf03caf1dbf3743d5b8c7cbf47fdd15e0e004190b7b0319cf9ffc00"
 SERP_API_URL = "https://serpapi.com/search.json"
 
 # Query template
 QUERY_TEMPLATE = "Past Business History of {company} Previous Companies of Executives, Past Bankruptcies, Regulatory Actions"
 
+
+   
+
 def get_driver():
-    """Initialize Chrome driver with environment-aware configuration"""
+    """Initialize Chrome driver for custom VPS deployment"""
     options = Options()
     options.add_argument("--window-size=1920,1080")
     options.add_argument("--disable-gpu")
     options.add_argument("--headless=new")  # New headless mode
-
-    if os.environ.get('RENDER'):
-        # Render-specific configuration using your existing build command setup
-        chrome_path = '/tmp/chrome/opt/google/chrome/chrome'
-        options.binary_location = chrome_path
-
-        # Auto-detect Chrome version and get matching chromedriver
-        try:
-            # Get Chrome version
-            result = subprocess.run([chrome_path, '--version'],
-                                  capture_output=True, text=True)
-            version = re.search(r'\d+\.\d+\.\d+', result.stdout).group()
-            major_version = version.split('.')[0]
-
-            # Install matching chromedriver
-            service = Service(ChromeDriverManager(version=major_version).install())
-        except Exception as e:
-            print(f"Error initializing ChromeDriver: {e}")
-            service = Service(ChromeDriverManager().install())
-    else:
-        # Windows/local configuration
-        service = Service(ChromeDriverManager().install())
-
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
-    return webdriver.Chrome(service=service, options=options)
+    
+    # Use the system's chromedriver directly
+    chromedriver_path = "/usr/local/bin/chromedriver"  
+    
+    try:
+        service = Service(executable_path=chromedriver_path)
+        driver = webdriver.Chrome(service=service, options=options)
+        return driver
+    except Exception as e:
+        print(f"Error using system chromedriver: {e}")
+        # Fallback to ChromeDriverManager
+        service = Service(ChromeDriverManager().install())
+        return webdriver.Chrome(service=service, options=options)
 
 def get_wait_time():
     """Environment-aware timeout configuration"""
-    return 20 if os.environ.get('RENDER') else 10
+    # Increase timeout for production server
+    return 20
 
 def handle_cookie_consent(driver):
     """Handle cookie consent overlay if present."""
