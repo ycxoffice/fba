@@ -18,6 +18,10 @@ def create_app():
     MONGO_URI = os.getenv("MONGO_URI")
     connect(db="fba_dev", host=MONGO_URI)
 
+    @app.route("/")
+    def welcome():
+        return "<h1>backend is up</h1>"
+    
     # Health Check Route
     @app.route("/health")
     def health_check():
