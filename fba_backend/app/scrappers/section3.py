@@ -13,6 +13,7 @@ import requests
 import json
 import time
 from dotenv import load_dotenv
+import platform , logging
 
 load_dotenv()
 
@@ -24,29 +25,47 @@ SERP_API_URL = "https://serpapi.com/search.json"
 QUERY_TEMPLATE = "Past Business History of {company} Previous Companies of Executives, Past Bankruptcies, Regulatory Actions"
 
 
-   
+
+
+import os
+import platform
+import logging
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+from webdriver_manager.chrome import ChromeDriverManager
 
 def get_driver():
-    """Initialize Chrome driver for custom VPS deployment"""
+    """Initialize Chrome driver for both Ubuntu (VPS) and Windows (local)"""
     options = Options()
     options.add_argument("--window-size=1920,1080")
     options.add_argument("--disable-gpu")
-    options.add_argument("--headless=new")  # New headless mode
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
-    
-    # Use the system's chromedriver directly
-    chromedriver_path = "/usr/local/bin/chromedriver"  
-    
+
+    # Enable headless mode only on Linux
+    if platform.system() == "Linux":
+        options.add_argument("--headless=new")  # New headless mode for Linux
+
+    # Detect OS and set ChromeDriver path accordingly
+    chromedriver_path = "/usr/local/bin/chromedriver" if platform.system() == "Linux" else None
+
     try:
-        service = Service(executable_path=chromedriver_path)
+        if chromedriver_path and os.path.exists(chromedriver_path):
+            logging.info(f"Using custom ChromeDriver path: {chromedriver_path}")
+            service = Service(executable_path=chromedriver_path)
+        else:
+            logging.info("Downloading and using ChromeDriver from ChromeDriverManager...")
+            service = Service(ChromeDriverManager().install())  # Auto-download latest
+
         driver = webdriver.Chrome(service=service, options=options)
+        logging.info("ChromeDriver initialized successfully.")
         return driver
+
     except Exception as e:
-        print(f"Error using system chromedriver: {e}")
-        # Fallback to ChromeDriverManager
-        service = Service(ChromeDriverManager().install())
-        return webdriver.Chrome(service=service, options=options)
+        logging.error(f"Error initializing ChromeDriver: {e}", exc_info=True)
+        return None
+
 
 def get_wait_time():
     """Environment-aware timeout configuration"""

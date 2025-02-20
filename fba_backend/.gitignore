@@ -1,2 +1,6 @@
-venv
+# Ignore the "ahmedenv" folder (and everything inside it)
+venv/
+
+# Ignore all __pycache__ folders
 __pycache__/
+**/__pycache__/

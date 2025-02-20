@@ -16,6 +16,8 @@ from selenium.webdriver.support import expected_conditions as EC
 from webdriver_manager.chrome import ChromeDriverManager
 from dotenv import load_dotenv
 import warnings
+import platform
+import logging
 
 # Suppress XML warning
 warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
@@ -26,27 +28,48 @@ load_dotenv()
 # Environment configuration
 SCRAPER_API_KEY = "6de50d316b80483b7c00a9db6f3cade0"
 
+# Configure logging
+logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
+
+import os
+import platform
+import logging
+from selenium import webdriver
+from selenium.webdriver.chrome.service import Service
+from selenium.webdriver.chrome.options import Options
+from webdriver_manager.chrome import ChromeDriverManager
+
 def get_driver():
-    """Initialize Chrome driver for custom VPS deployment"""
+    """Initialize Chrome driver for both Ubuntu (VPS) and Windows (local)"""
     options = Options()
     options.add_argument("--window-size=1920,1080")
     options.add_argument("--disable-gpu")
-    options.add_argument("--headless=new")  # New headless mode
     options.add_argument("--no-sandbox")
     options.add_argument("--disable-dev-shm-usage")
-    
-    # Use the system's chromedriver directly
-    chromedriver_path = "/usr/local/bin/chromedriver"  
-    
+
+    # Enable headless mode only on Linux
+    if platform.system() == "Linux":
+        options.add_argument("--headless=new")  # New headless mode for Linux
+
+    # Detect OS and set ChromeDriver path accordingly
+    chromedriver_path = "/usr/local/bin/chromedriver" if platform.system() == "Linux" else None
+
     try:
-        service = Service(executable_path=chromedriver_path)
+        if chromedriver_path and os.path.exists(chromedriver_path):
+            logging.info(f"Using custom ChromeDriver path: {chromedriver_path}")
+            service = Service(executable_path=chromedriver_path)
+        else:
+            logging.info("Downloading and using ChromeDriver from ChromeDriverManager...")
+            service = Service(ChromeDriverManager().install())  # Auto-download latest
+
         driver = webdriver.Chrome(service=service, options=options)
+        logging.info("ChromeDriver initialized successfully.")
         return driver
+
     except Exception as e:
-        print(f"Error using system chromedriver: {e}")
-        # Fallback to ChromeDriverManager
-        service = Service(ChromeDriverManager().install())
-        return webdriver.Chrome(service=service, options=options)
+        logging.error(f"Error initializing ChromeDriver: {e}", exc_info=True)
+        return None
+
 
 def get_wait_time():
     """Environment-aware timeout configuration"""
@@ -90,9 +113,10 @@ def get_case_titles_uk(company_name, total_pages):
             print(f"Failed to fetch UK page {page} for {company_name}. Skipping...")
     return all_titles if all_titles else ["No UK Lawsuits Found"]
 
-### ==== FINDLAW CASE LAW SCRAPER ==== ###
 def get_case_titles_findlaw(company_name):
     driver = get_driver()
+    all_cases = []  # Define before the loop
+
     try:
         url = "https://caselaw.findlaw.com/"
         driver.get(url)
@@ -104,7 +128,6 @@ def get_case_titles_findlaw(company_name):
         time.sleep(5)
 
         current_url = driver.current_url
-        all_cases = []
         page_number = 1
 
         while True:
@@ -131,11 +154,10 @@ def get_case_titles_findlaw(company_name):
 
             driver.switch_to.window(driver.window_handles[0])
             page_number += 10
-
-
     finally:
         driver.quit()
         return all_cases if all_cases else ["No FindLaw Cases Found"]
+
 ### ==== PATENT SCRAPER (Espacenet) ==== ###
 def get_patent_titles(company_name):
     """Scrape Espacenet and extract patent titles and applicants with specified conditions."""

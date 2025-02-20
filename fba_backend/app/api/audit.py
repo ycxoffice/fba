@@ -51,7 +51,7 @@ def create_audit():
             website_url=website_url,
             properties=company_data  # ✅ Store full API response in properties
         )
-        audit.save() 
+        audit.save()
 
         company_name = data["company_name"].strip()
 
@@ -230,7 +230,7 @@ def get_financials():
         return jsonify({"error": "Missing required parameter: company_name"}), 400
 
     try:
-        results = main(company_name)
+        results = main5(company_name)
         return jsonify(results),200
 
     except Exception as e:
