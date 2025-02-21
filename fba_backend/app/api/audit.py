@@ -206,16 +206,16 @@ def scrape_company_data(company_name):
     except Exception as e:
         print(f"Error in risk data processing for {company_name}: {str(e)}")  # Log the error
 
-@audit_bp.route('/process_companies', methods=['POST'])
+@audit_bp.route('/compare', methods=['GET'])
 def process_companies():
     try:
         data = request.json
-        companies = data.get("companies", [])
-        if not companies:
-            return jsonify({"error": "No companies provided"}), 400
+        company = data.get("company_name", "")
+        if not company:
+            return jsonify({"error": "No company provided"}), 400
 
         # Call the main4 function with companies
-        result = main4(companies)
+        result = main4(company)
 
         return jsonify(result), 200
     except Exception as e:
