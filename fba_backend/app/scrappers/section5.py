@@ -316,34 +316,34 @@ def get_fatf_blacklist(company_name):
 
     return fatf_blacklist if fatf_blacklist else ["Not Listed on Blacklist"]
 
-### ==== INTERPOL RED NOTICE ==== ###
-def scrape_interpol_notices(family_name):
-    """Scrape Interpol Red Notices by searching for a family name."""
-    driver = get_driver()
-    try:
-        driver.get("https://www.interpol.int/en/How-we-work/Notices/Red-Notices/View-Red-Notices")
-        time.sleep(get_wait_time())
+# ### ==== INTERPOL RED NOTICE ==== ###
+# def scrape_interpol_notices(family_name):
+#     """Scrape Interpol Red Notices by searching for a family name."""
+#     driver = get_driver()
+#     try:
+#         driver.get("https://www.interpol.int/en/How-we-work/Notices/Red-Notices/View-Red-Notices")
+#         time.sleep(get_wait_time())
 
-        family_name_input = driver.find_element(By.ID, "name")
-        family_name_input.send_keys(family_name)
-        family_name_input.send_keys(Keys.RETURN)
-        time.sleep(get_wait_time())
+#         family_name_input = driver.find_element(By.ID, "Name")
+#         family_name_input.send_keys(family_name)
+#         family_name_input.send_keys(Keys.RETURN)
+#         time.sleep(get_wait_time())
 
-        soup = BeautifulSoup(driver.page_source, "html.parser")
-        notices = soup.find_all("div", class_="redNoticeItem__labelText")
+#         soup = BeautifulSoup(driver.page_source, "html.parser")
+#         notices = soup.find_all("div", class_="redNoticeItem__labelText")
 
-        results = []
-        for notice in notices:
-            name_tag = notice.find("a", class_="redNoticeItem__labelLink")
-            if name_tag:
-                name = name_tag.get_text(separator=" ", strip=True)
-                profile_url = name_tag["data-singleurl"]
-                if name and profile_url:
-                    results.append(f"{name} ({profile_url})")
+#         results = []
+#         for notice in notices:
+#             name_tag = notice.find("a", class_="redNoticeItem__labelLink")
+#             if name_tag:
+#                 name = name_tag.get_text(separator=" ", strip=True)
+#                 profile_url = name_tag["data-singleurl"]
+#                 if name and profile_url:
+#                     results.append(f"{name} ({profile_url})")
 
-        return results if results else ["No Interpol Notices Found"]
-    finally:
-        driver.quit()
+#         return results if results else ["No Interpol Notices Found"]
+#     finally:
+#         driver.quit()
 
 ### ==== GDPR PRIVACY COMPLIANCE SCRAPER ==== ###
 def scrape_gdpr_fines(search_term):
@@ -448,9 +448,9 @@ def main5(company_name):
     print(f"Scraping FATF blacklist for {company_name}...")
     fatf_blacklist = get_fatf_blacklist(company_name)
 
-    print(f"Scraping Interpol Red Notices for {company_name}...")
-    interpol_notices = scrape_interpol_notices(company_name)
-
+    # print(f"Scraping Interpol Red Notices for {company_name}...")
+    # interpol_notices = scrape_interpol_notices(company_name)
+    interpol_notices= []
     print(f"Scraping OFAC sanctions for {company_name}...")
     ofac_sanctions = scrape_ofac_sanctions(company_name)
 
