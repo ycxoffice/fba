@@ -227,16 +227,67 @@ def extract_marketbeat_data(wait):
     return {f"competitor_{i+1}": comp for i, comp in enumerate(competitors_list)}
 
 # ============================
+# Transformation Function for Public Company Data
+# ============================
+def transform_public_company_data(company_name, stock_data):
+    """
+    Transforms the aggregated stock_data into the desired JSON structure.
+    """
+    transformed = {
+        "company_name": company_name,
+        "stock name": stock_data.get("stock name", "NA"),
+        "stock value": stock_data.get("stock value", "NA"),
+        "market cap": stock_data.get("market cap", "NA"),
+        "avg volume": stock_data.get("avg volume", "NA"),
+        "P/E ratio": stock_data.get("P/E ratio", "NA"),
+        "revenue": stock_data.get("revenue", "NA"),
+        "revenue growth rate": stock_data.get("revenue growth rate", "NA"),
+        "operating expense": stock_data.get("operating expense", "NA"),
+        "operating expense rate": stock_data.get("operating expense rate", "NA"),
+        "net income": stock_data.get("net income", "NA"),
+        "net income rate": stock_data.get("net income rate", "NA"),
+        "net profit margin": stock_data.get("net profit margin", "NA"),
+        "net profit margin rate": stock_data.get("net profit margin rate", "NA"),
+        "sector": stock_data.get("sector", "NA"),
+        "industry": stock_data.get("industry", "NA"),
+        "market share": stock_data.get("market share", "NA"),
+        "Competitors": []
+    }
+    for i in range(1, 4):
+        comp_key = f"competitor_{i}"
+        comp_data_key = f"competitor_{i}_data"
+        ticker_value = stock_data.get(comp_key, "NA")
+        comp_data = stock_data.get(comp_data_key, "NA")
+        if ticker_value != "NA" and comp_data != "NA" and isinstance(comp_data, dict):
+            transformed["Competitors"].append({
+                "ticker": ticker_value,
+                "stock name": comp_data.get("stock name", "NA"),
+                "stock value": comp_data.get("stock value", "NA"),
+                "market cap": comp_data.get("market cap", "NA"),
+                "avg volume": comp_data.get("avg volume", "NA"),
+                "P/E ratio": comp_data.get("P/E ratio", "NA"),
+                "revenue": comp_data.get("revenue", "NA"),
+                "revenue growth rate": comp_data.get("revenue growth rate", "NA"),
+                "operating expense": comp_data.get("operating expense", "NA"),
+                "operating expense rate": comp_data.get("operating expense rate", "NA"),
+                "net income": comp_data.get("net income", "NA"),
+                "net income rate": comp_data.get("net income rate", "NA"),
+                "net profit margin": comp_data.get("net profit margin", "NA"),
+                "net profit margin rate": comp_data.get("net profit margin rate", "NA")
+            })
+    return transformed
+
+# ============================
 # Public Company Scraper
 # ============================
-def scrape_public_company(company, ticker):
+def scrape_public_company(company_name, ticker):
     driver = get_driver()
     if not driver:
         print("Failed to initialize ChromeDriver.")
         return
 
     try:
-        print(f"Scraping public company data for: {company} with ticker {ticker}")
+        print(f"Scraping public company data for: {company_name} with ticker {ticker}")
         # Open Google Finance and search for the ticker.
         driver.get("https://www.google.com/finance/")
         click_button(driver, By.XPATH, "//button[contains(., 'Accept all')]", timeout=5, sleep_time=2)
@@ -295,7 +346,7 @@ def scrape_public_company(company, ticker):
         marketbeat_data = extract_marketbeat_data(wait)
 
         # Aggregate data from all sources.
-        stock_data = {**google_data, **cnn_data, **csimarket_data, **marketbeat_data}
+        stock_data = { **google_data, **cnn_data, **csimarket_data, **marketbeat_data}
 
         # For each competitor, if the competitor name is "NA", assign "NA" for its data.
         for comp_key, competitor in marketbeat_data.items():
@@ -331,7 +382,9 @@ def scrape_public_company(company, ticker):
                     print(f"An error occurred while processing competitor {competitor}: {e}")
                     stock_data[f"{comp_key}_data"] = "NA"
 
-        return json.dumps(stock_data, indent=4)
+        # Transform aggregated data to the desired structure
+        transformed_data = transform_public_company_data(company_name, stock_data)
+        return json.dumps(transformed_data, indent=4)
 
     except Exception as e:
         print(f"An error occurred while processing ticker {ticker}: {e}")
@@ -411,10 +464,10 @@ def scrape_company_data(driver, wait, company_name):
     competitor_3 = extract_competitor(3)
 
     return {
-        "company name": company_name,
+        "company_name": company_name,
         "revenue": estimated_revenue,
         "industry": industry,
-        "competitors": [competitor_1, competitor_2, competitor_3]
+        "Competitors": [competitor_1, competitor_2, competitor_3]
     }
 
 def scrape_private_company(company):
@@ -476,4 +529,3 @@ def main4(company):
     else:
         result = scrape_private_company(company)
     return result
-

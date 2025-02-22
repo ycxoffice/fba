@@ -33,7 +33,7 @@ class Executives(Document):
     business_history = ListField(DictField(), default=[])
 
     meta = {'collection': 'executives'}
- 
+
     def to_json(self):
         """ ✅ Fix serialization issue using `json_util.dumps` """
         return {
@@ -122,4 +122,50 @@ class LegalRisk(Document):
             "patents": self.patents,
             "privacy_compliance": self.privacy_compliance,  # Added this line
             "trademark_decisions": self.trademark_decisions  # Added this line
+        }
+
+# New Competitors Collection
+class Competitors(Document):
+    company_name = StringField(required=True, max_length=100, unique=True)
+    stock_name = StringField()
+    stock_value = StringField()
+    market_cap = StringField()
+    avg_volume = StringField()
+    pe_ratio = StringField()  # Represents "P/E ratio"
+    revenue = StringField()
+    revenue_growth_rate = StringField()
+    operating_expense = StringField()
+    operating_expense_rate = StringField()
+    net_income = StringField()
+    net_income_rate = StringField()
+    net_profit_margin = StringField()
+    net_profit_margin_rate = StringField()
+    sector = StringField()
+    industry = StringField()
+    market_share = StringField()
+    competitors = ListField(DictField())  # List of competitor details
+
+    meta = {'collection': 'competitors'}
+
+    def to_json(self):
+        return {
+            "id": str(self.id),
+            "company_name": self.company_name,
+            "stock name": self.stock_name,
+            "stock value": self.stock_value,
+            "market cap": self.market_cap,
+            "avg volume": self.avg_volume,
+            "P/E ratio": self.pe_ratio,
+            "revenue": self.revenue,
+            "revenue growth rate": self.revenue_growth_rate,
+            "operating expense": self.operating_expense,
+            "operating expense rate": self.operating_expense_rate,
+            "net income": self.net_income,
+            "net income rate": self.net_income_rate,
+            "net profit margin": self.net_profit_margin,
+            "net profit margin rate": self.net_profit_margin_rate,
+            "sector": self.sector,
+            "industry": self.industry,
+            "market share": self.market_share,
+            "Competitors": self.competitors
         }

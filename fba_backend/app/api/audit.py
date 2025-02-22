@@ -1,12 +1,12 @@
 from flask import Blueprint, request, jsonify
-from ..models.audit import Audit , Executives , LegalRisk , Financial
+from ..models.audit import Audit , Executives , LegalRisk , Financial , Competitors
 import requests
 from app.scrappers.section3 import get_ticker_symbol , fetch_business_history , scrape_esg_scores , scrape_key_executives
 from app.scrappers.section2 import main
 from app.scrappers.section5 import main5
 from app.scrappers.section4 import main4
 import threading
-
+import json
 
 
 audit_bp = Blueprint("audit", __name__)
@@ -59,6 +59,8 @@ def create_audit():
         threading.Thread(target=process_executive_data, args=(company_name,), daemon=True).start()
         threading.Thread(target=process_financial_data, args=(company_name,), daemon=True).start()
         threading.Thread(target=scrape_company_data, args=(company_name,), daemon=True).start()
+        threading.Thread(target=process_companies, args=(company_name,), daemon=True).start()
+
 
 
         return jsonify({"message": "Audit saved and background processing started", "audit": audit.to_json()}), 201
@@ -206,20 +208,64 @@ def scrape_company_data(company_name):
     except Exception as e:
         print(f"Error in risk data processing for {company_name}: {str(e)}")  # Log the error
 
-@audit_bp.route('/compare', methods=['GET'])
-def process_companies():
+# @audit_bp.route('/compare', methods=['GET'])
+def process_companies(company_name):
     try:
-        data = request.json
-        company = data.get("company_name", "")
+        # data = request.json
+        # company = data.get("company_name", "")
+        company = company_name.strip()
+
         if not company:
-            return jsonify({"error": "No company provided"}), 400
+            print(f"company not provided")
+            return
 
-        # Call the main4 function with companies
-        result = main4(company)
+        # Call main4 to obtain the public company data (as a JSON string)
+        result_json = main4(company)
+        print(result_json)
+        # Convert the JSON string to a dictionary
+        result_data = json.loads(result_json)
 
-        return jsonify(result), 200
+        # Helper function to handle null or empty values
+        def handle_null(value):
+            if value is None or value == "":
+                return "NA"
+            return value
+
+        # Process the "Competitors" array directly: update each dictionary
+        competitors_array = result_data.get("Competitors", [])
+        for comp in competitors_array:
+            for key in comp:
+                comp[key] = handle_null(comp.get(key))
+
+        # Build the Competitors document using data from result_data,
+        # replacing any missing values with "NA"
+        competitor_doc = Competitors(
+            company_name=handle_null(result_data.get("company_name")),
+            stock_name=handle_null(result_data.get("stock name")),
+            stock_value=handle_null(result_data.get("stock value")),
+            market_cap=handle_null(result_data.get("market cap")),
+            avg_volume=handle_null(result_data.get("avg volume")),
+            pe_ratio=handle_null(result_data.get("P/E ratio")),
+            revenue=handle_null(result_data.get("revenue")),
+            revenue_growth_rate=handle_null(result_data.get("revenue growth rate")),
+            operating_expense=handle_null(result_data.get("operating expense")),
+            operating_expense_rate=handle_null(result_data.get("operating expense rate")),
+            net_income=handle_null(result_data.get("net income")),
+            net_income_rate=handle_null(result_data.get("net income rate")),
+            net_profit_margin=handle_null(result_data.get("net profit margin")),
+            net_profit_margin_rate=handle_null(result_data.get("net profit margin rate")),
+            sector=handle_null(result_data.get("sector")),
+            industry=handle_null(result_data.get("industry")),
+            market_share=handle_null(result_data.get("market share")),
+            competitors=competitors_array
+        )
+        competitor_doc.save()
+        print(f"Competitors Saved Successfully")
+        return
     except Exception as e:
-        return jsonify({"error": "Internal Server Error", "details": str(e)}), 500
+        print(f"Error caused during Competitors process!")
+        return
+
 
 @audit_bp.route('/get_financials', methods=['GET'])
 def get_financials():
@@ -244,9 +290,10 @@ def get_audit_by_company_name(company_name):
         audit_executives = Executives.objects(company_name=company_name).first()
         financial = Financial.objects(company_name=company_name).first()
         legal_risk = LegalRisk.objects(company_name=company_name).first()
+        competitors = Competitors.objects(company_name=company_name).first()
 
         # If all collections return empty, return 404
-        if not any([audit, audit_executives, financial, legal_risk]):
+        if not any([audit, audit_executives, financial, legal_risk , competitors]):
             return jsonify({"error": "No audit data found for the given company"}), 404
 
         # Manually remove unnecessary fields from 'properties' inside 'audit'
@@ -284,7 +331,8 @@ def get_audit_by_company_name(company_name):
                 "audit": to_json(audit),  # Cleaned audit data
                 "executives": to_json(audit_executives),
                 "financial": to_json(financial),
-                "legalRisk": to_json(legal_risk)  # Fixed typo here: "legal Risk" => "legalRisk"
+                "legalRisk": to_json(legal_risk),  # Fixed typo here: "legal Risk" => "legalRisk"
+                "competitors": to_json(competitors)
             }
         }
 
