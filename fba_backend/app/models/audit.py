@@ -169,3 +169,30 @@ class Competitors(Document):
             "market share": self.market_share,
             "Competitors": self.competitors
         }
+
+class Employee(Document):
+    company_name = StringField(required=True, max_length=100, unique=True)
+    diversity_and_inclusion_rating = FloatField(default=None)
+    employee_growth_rate = FloatField(default=None)
+    job_count = IntField(default=None)
+    median_tenure_years = StringField(default=None)  # Keeping as string to match input format
+    previous_employee_count = IntField(default=None)
+    rating = FloatField(default=None)
+    total_employees = IntField(default=None)
+    turnover_rate = FloatField(default=None)
+
+    meta = {'collection': 'employee'}
+
+    def to_json(self):
+        return {
+            "id": str(self.id),
+            "company_name": self.company_name,
+            "diversity_and_inclusion_rating": self.diversity_and_inclusion_rating,
+            "employee_growth_rate": self.employee_growth_rate,
+            "job_count": self.job_count,
+            "median_tenure_years": self.median_tenure_years,
+            "previous_employee_count": self.previous_employee_count,
+            "rating": self.rating,
+            "total_employees": self.total_employees,
+            "turnover_rate": self.turnover_rate
+        }

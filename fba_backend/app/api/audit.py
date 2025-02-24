@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from ..models.audit import Audit , Executives , LegalRisk , Financial , Competitors
+from ..models.audit import Audit , Executives , LegalRisk , Financial , Competitors , Employee
 import requests
 from app.scrappers.section3 import get_ticker_symbol , fetch_business_history , scrape_esg_scores , scrape_key_executives
 from app.scrappers.section2 import main
@@ -56,10 +56,12 @@ def create_audit():
         company_name = data["company_name"].strip()
 
         # Start background processing in separate threads
-        threading.Thread(target=process_executive_data, args=(company_name,), daemon=True).start()
+        threading.Thread(target=process_employee_hr, args=(company_name,),daemon=True).start()
         threading.Thread(target=process_financial_data, args=(company_name,), daemon=True).start()
         threading.Thread(target=scrape_company_data, args=(company_name,), daemon=True).start()
+        threading.Thread(target=process_executive_data, args=(company_name,), daemon=True).start()
         threading.Thread(target=process_companies, args=(company_name,), daemon=True).start()
+      
 
 
 
@@ -140,6 +142,51 @@ def process_financial_data(company_name):
 
     except Exception as e:
         print(f"Error in financial data processing for {company_name}: {str(e)}")  # Log the error
+
+from app.scrappers.section6 import fetch_job_data_from_rapidapi , fetch_linkedin_data
+
+# @audit_bp.route("/employee", methods=["POST"])
+def process_employee_hr(company_name):
+    """Main API endpoint to fetch company data."""
+    try:
+        # data = request.get_json()
+        company_name = company_name.strip()
+        
+        if not company_name:
+            print("Company name required for employees section")
+            return 
+        
+        # Fetch job data from RapidAPI
+        rapid_api_data = fetch_job_data_from_rapidapi(company_name)
+        
+        # Fetch LinkedIn employee data
+        linkedin_data = fetch_linkedin_data(company_name)
+        
+        data_points = {}
+        data_points.update(rapid_api_data)
+        data_points.update(linkedin_data)
+        
+        # Save data to Employee model
+        employee = Employee(
+            company_name=company_name,
+            diversity_and_inclusion_rating=data_points.get("diversity_and_inclusion_rating"),
+            employee_growth_rate=data_points.get("employeeGrowthRate"),
+            job_count=data_points.get("job_count"),
+            median_tenure_years=data_points.get("medianTenureYears"),
+            previous_employee_count=data_points.get("previousEmployeeCount"),
+            rating=data_points.get("rating"),
+            total_employees=data_points.get("totalEmployees"),
+            turnover_rate=data_points.get("turnoverRate")
+        )
+        employee.save()
+        
+        print(f"Employee data for {company_name} saved successfully.")
+        return 
+    
+    except Exception as e:
+        print(f"Error in employee data processing for {company_name}: {str(e)}")
+        return 
+
 
 @audit_bp.route("/", methods=["GET"])
 def get_companies():
@@ -291,9 +338,11 @@ def get_audit_by_company_name(company_name):
         financial = Financial.objects(company_name=company_name).first()
         legal_risk = LegalRisk.objects(company_name=company_name).first()
         competitors = Competitors.objects(company_name=company_name).first()
+        employees = Employee.objects(company_name=company_name).first()
+
 
         # If all collections return empty, return 404
-        if not any([audit, audit_executives, financial, legal_risk , competitors]):
+        if not any([audit, audit_executives, financial, legal_risk , competitors,employees]):
             return jsonify({"error": "No audit data found for the given company"}), 404
 
         # Manually remove unnecessary fields from 'properties' inside 'audit'
@@ -332,7 +381,8 @@ def get_audit_by_company_name(company_name):
                 "executives": to_json(audit_executives),
                 "financial": to_json(financial),
                 "legalRisk": to_json(legal_risk),  # Fixed typo here: "legal Risk" => "legalRisk"
-                "competitors": to_json(competitors)
+                "competitors": to_json(competitors),
+                "Employee_&_Hr": to_json(employees)
             }
         }
 
