@@ -162,6 +162,18 @@ function CompanyData() {
       [section]: !prev[section],
     }));
   };
+  const sectionOrder = [
+    "audit",
+    "executives",
+    "financial",
+    "Employee_&_Hr",
+    "competitors",
+    "legalRisk"
+  ];
+  
+  const sortedData = sectionOrder
+    .filter((key) => key in fetchedData.data)
+    .map((key) => [key, fetchedData.data[key]]);
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 lg:p-8">
@@ -182,12 +194,8 @@ function CompanyData() {
         </div>
 
         <div className="space-y-6">
-          {Object.entries(fetchedData.data).map(
-            ([sectionKey, sectionValue]) => (
-              <div
-                key={sectionKey}
-                className="bg-white rounded-xl shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md"
-              >
+          {sortedData.map(([sectionKey, sectionValue]) => (
+            <div key={sectionKey} className="bg-white rounded-xl shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md">
                 <button
                   onClick={() => toggleSection(sectionKey)}
                   className="w-full px-6 py-4 flex items-center justify-between bg-gradient-to-r from-gray-50 to-white hover:from-blue-50 hover:to-white transition-colors duration-300"
