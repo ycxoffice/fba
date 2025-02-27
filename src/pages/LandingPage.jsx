@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import {
   Search,
@@ -27,6 +27,7 @@ const CompanyList = () => {
   const [selectedExchange, setSelectedExchange] = useState("");
   const [selectedSector, setSelectedSector] = useState("");
   const [selectedValuation, setSelectedValuation] = useState("");
+  const [selectedLocation, setSelectedLocation] = useState("");
   const [loading, setLoading] = useState(false);
   const [activeTab, setActiveTab] = useState("all");
 
@@ -48,13 +49,38 @@ const CompanyList = () => {
             to="/companies"
             className="inline-flex items-center px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-lg hover:scale-105 transform transition-all shadow-lg hover:shadow-xl"
           >
-            <Star className="w-4 h-4 mr-2" />
-            Request Report
+            <div className="w-2 h-4 mr-2" />
+            Request Your Business Audit
           </Link>
         </div>
       </div>
     </nav>
   );
+
+  const topLocations = useMemo(() => {
+    const locationCounts = smallcapCompanies.reduce((acc, company) => {
+      const loc = company.location;
+      if (loc) {
+        acc[loc] = (acc[loc] || 0) + 1;
+      }
+      return acc;
+    }, {});
+
+    return Object.entries(locationCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 50)
+      .map(([loc]) => loc);
+  }, [smallcapCompanies]);
+
+  // Valuation range calculator
+  const getValuationRange = (valuation) => {
+    if (!valuation) return "";
+    const num = parseInt(valuation.replace(/[^0-9]/g, ""), 10);
+    if (num <= 10) return "1-10";
+    if (num <= 30) return "10-30";
+    if (num <= 50) return "30-50";
+    return "";
+  };
 
   // Fetch Smallcap data from Google Sheets
   useEffect(() => {
@@ -152,14 +178,29 @@ const CompanyList = () => {
         company.name?.toLowerCase().includes(search.toLowerCase()) ||
         company.industry?.toLowerCase().includes(search.toLowerCase()) ||
         company.location?.toLowerCase().includes(search.toLowerCase());
+
       const matchesExchange =
         selectedExchange === "" || company.exchange === selectedExchange;
+
       const matchesSector =
         selectedSector === "" || company.sector === selectedSector;
+
       const matchesValuation =
-        selectedValuation === "" || company.valuation === selectedValuation;
+        selectedValuation === "" ||
+        getValuationRange(company.valuation) === selectedValuation;
+
+      const matchesLocation =
+        selectedLocation === "" ||
+        (selectedLocation === "Other"
+          ? !topLocations.includes(company.location)
+          : company.location === selectedLocation);
+
       return (
-        matchesSearch && matchesExchange && matchesSector && matchesValuation
+        matchesSearch &&
+        matchesExchange &&
+        matchesSector &&
+        matchesValuation &&
+        matchesLocation
       );
     })
     .slice(0, 50);
@@ -383,8 +424,7 @@ const CompanyList = () => {
               </span>
             </h1>
             <p className="text-blue-100/90 text-xl max-w-3xl mx-auto font-medium">
-              Discover and explore our extensive network of companies from
-              multiple sources
+              Search FBA Global Business Directory
             </p>
           </div>
         </div>
@@ -412,7 +452,7 @@ const CompanyList = () => {
           </form>
 
           {/* Enhanced Filter Row */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             {/* Exchange Filter */}
             <div className="relative group">
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -465,6 +505,32 @@ const CompanyList = () => {
               </div>
             </div>
 
+            {/*  Location Filter */}
+            <div className="relative group">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Location
+              </label>
+              <div className="relative">
+                <select
+                  className="w-full pl-4 pr-10 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 appearance-none shadow-sm"
+                  value={selectedLocation}
+                  onChange={(e) => setSelectedLocation(e.target.value)}
+                >
+                  <option value="">All Locations</option>
+                  {topLocations.map((location, idx) => (
+                    <option key={idx} value={location}>
+                      {location}
+                    </option>
+                  ))}
+                  <option value="Other">Other Locations</option>
+                </select>
+                <ChevronDown
+                  size={18}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none"
+                />
+              </div>
+            </div>
+
             {/* Valuation Filter */}
             <div className="relative group">
               <label className="block text-sm font-medium text-gray-700 mb-1">
@@ -477,17 +543,14 @@ const CompanyList = () => {
                   onChange={(e) => setSelectedValuation(e.target.value)}
                 >
                   <option value="">All Valuations</option>
-                  {allValuations.map((valuation, idx) => (
-                    <option key={idx} value={valuation}>
-                      {valuation}
-                    </option>
-                  ))}
+                  <option value="1-10">1-10M</option>
+                  <option value="10-30">10-30M</option>
+                  <option value="30-50">30-50M</option>
                 </select>
                 <ChevronDown
                   size={18}
                   className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none"
                 />
-                <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-pink-500/5 to-rose-500/5 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity"></div>
               </div>
             </div>
           </div>
@@ -540,10 +603,6 @@ const CompanyList = () => {
                 <Globe size={14} className="mr-1" />
                 Directory ({directoryCompanies.length})
               </button>
-            </div>
-
-            <div className="text-sm text-gray-600 font-medium">
-              Showing {getCompaniesForDisplay().length} results
             </div>
           </div>
         </div>
