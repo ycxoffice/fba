@@ -3,15 +3,16 @@ import { Link } from "react-router-dom";
 import {
   Search,
   Building2,
-  ArrowRight,
   Globe,
   Calendar,
   Briefcase,
   Users,
   MapPin,
-  Flag,
   Linkedin,
-  Filter,
+  ChevronDown,
+  Star,
+  Sparkles,
+  Layers,
 } from "lucide-react";
 
 const BASE_URL =
@@ -19,467 +20,557 @@ const BASE_URL =
 const COMPANY_LIST_API = "https://api.companylist.fba.ai";
 
 const CompanyList = () => {
-  const [companies, setCompanies] = useState([]);
+  const [auditCompanies, setAuditCompanies] = useState([]);
+  const [smallcapCompanies, setSmallcapCompanies] = useState([]);
+  const [directoryCompanies, setDirectoryCompanies] = useState([]);
   const [search, setSearch] = useState("");
-  const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
+  const [selectedExchange, setSelectedExchange] = useState("");
+  const [selectedSector, setSelectedSector] = useState("");
   const [loading, setLoading] = useState(false);
-  const [activeTab, setActiveTab] = useState("all"); // "all", "audit", "directory"
-  const [viewMode, setViewMode] = useState("grid"); // "grid" or "list"
-  const limit = 40;
+  const [activeTab, setActiveTab] = useState("all");
 
+  // Fetch Smallcap data from Google Sheets
   useEffect(() => {
-    fetchCompanies();
-  }, [search, page, activeTab]);
-
-  const fetchCompanies = async () => {
-    setLoading(true);
-
-    try {
-      let auditCompanies = [];
-      let directoryCompanies = [];
-      let combinedCompanies = [];
-
-      // Fetch data based on active tab
-      if (activeTab === "audit" || activeTab === "all") {
-        const auditRes = await fetch(
-          `${BASE_URL}/api/audit?search=${search}&page=${page}&limit=${limit}`
-        );
-        const auditData = await auditRes.json();
-        auditCompanies = [...auditData.companies].reverse().map((company) => ({
-          ...company,
-          source: "audit",
-          id: `audit-${company.company_name}`,
-          name: company.company_name,
-        }));
-      }
-
-      if (activeTab === "directory" || activeTab === "all") {
-        // If searching, use the search endpoint
-        let directoryRes;
-        if (search.trim()) {
-          directoryRes = await fetch(
-            `${COMPANY_LIST_API}/search?query=${search}`
-          );
-        } else {
-          directoryRes = await fetch(`${COMPANY_LIST_API}/companies?limit=100`);
-        }
-
-        const directoryData = await directoryRes.json();
-        directoryCompanies = directoryData.companies.map((company) => ({
-          ...company,
-          source: "directory",
-          company_name: company.name,
-        }));
-      }
-
-      // Combine based on active tab
-      if (activeTab === "all") {
-        // Merge and deduplicate companies by name
-        const nameMap = new Map();
-
-        [...auditCompanies, ...directoryCompanies].forEach((company) => {
-          const name = company.name || company.company_name;
-
-          if (!nameMap.has(name)) {
-            nameMap.set(name, company);
-          } else {
-            // If company exists in both sources, merge the data
-            const existingCompany = nameMap.get(name);
-            nameMap.set(name, { ...existingCompany, ...company });
-          }
+    const fetchSmallcap = async () => {
+      try {
+        const sheetId = "10n9xmV01j3_6pDU7QiR5DIbanIfAyYcd8rVavXT17oE";
+        const tabId = "336036379";
+        const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&gid=${tabId}`;
+        const response = await fetch(url);
+        const text = await response.text();
+        const jsonData = JSON.parse(text.substring(47).slice(0, -2));
+        const headers = jsonData.table.cols.map((col) => col.label);
+        const rows = jsonData.table.rows.map((row) => {
+          const company = {};
+          row.c.forEach((cell, i) => {
+            if (headers[i]) company[headers[i]] = cell ? cell.v : "";
+          });
+          return {
+            name: company["Company Name"],
+            industry: company["Industry"],
+            location: company["Headquarters"],
+            website: company["Website URL"],
+            exchange: company["Exchange"],
+            sector: company["Sector"],
+            valuation: company["Company Valuation"],
+            source: "smallcap",
+          };
         });
-
-        combinedCompanies = Array.from(nameMap.values());
-      } else if (activeTab === "audit") {
-        combinedCompanies = auditCompanies;
-      } else {
-        combinedCompanies = directoryCompanies;
+        setSmallcapCompanies(rows);
+      } catch (error) {
+        console.error("Error fetching Smallcap data:", error);
       }
+    };
+    fetchSmallcap();
+  }, []);
 
-      setCompanies(combinedCompanies);
-      setTotal(combinedCompanies.length);
-      setLoading(false);
-    } catch (error) {
-      console.error("Error fetching companies:", error);
-      setLoading(false);
-    }
-  };
+  // Fetch audit and directory data when search changes
+  useEffect(() => {
+    const fetchAuditAndDirectory = async () => {
+      setLoading(true);
+      try {
+        // Fetch audit data
+        const auditUrl = search.trim()
+          ? `${BASE_URL}/api/audit?search=${search}&limit=10`
+          : `${BASE_URL}/api/audit?limit=10`;
 
-  const handleSearch = (e) => {
-    e.preventDefault();
-    fetchCompanies();
-  };
+        const auditRes = await fetch(auditUrl);
+        const auditData = await auditRes.json();
 
-  const getGradientColor = (index) => {
-    const gradients = [
-      "from-blue-500 to-purple-500",
-      "from-emerald-500 to-teal-500",
-      "from-rose-500 to-pink-500",
-      "from-amber-500 to-orange-500",
-      "from-indigo-500 to-violet-500",
-    ];
-    return gradients[index % gradients.length];
-  };
+        // Ensure reversing a new copy
+        const reversedAudit = [...auditData.companies] // Make a copy before reversing
+          .reverse()
+          .map((company) => ({
+            name: company.company_name,
+            industry: company.industry,
+            location: company.location,
+            website: company.domain,
+            source: "audit",
+            id: `audit-${company.company_name}`,
+          }));
 
+        setAuditCompanies(reversedAudit);
+
+        // Directory data (limit to 100)
+        const directoryUrl = search.trim()
+          ? `${COMPANY_LIST_API}/search?query=${search}&limit=100`
+          : `${COMPANY_LIST_API}/companies?limit=100`;
+        const directoryRes = await fetch(directoryUrl);
+        const directoryData = await directoryRes.json();
+        setDirectoryCompanies(
+          directoryData.companies.map((company) => ({
+            name: company.name,
+            industry: company.industry,
+            location: company.locality || company.country,
+            website: company.domain,
+            year_founded: company.year_founded,
+            size_range: company.size_range,
+            linkedin_url: company.linkedin_url,
+            source: "directory",
+          }))
+        );
+      } catch (error) {
+        console.error("Error fetching audit or directory data:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchAuditAndDirectory();
+  }, [search]);
+
+  // Filter Smallcap companies based on exchange and sector (limit to 50)
+  const filteredSmallcapCompanies = smallcapCompanies
+    .filter((company) => {
+      const matchesSearch =
+        search.trim() === "" ||
+        company.name?.toLowerCase().includes(search.toLowerCase()) ||
+        company.industry?.toLowerCase().includes(search.toLowerCase()) ||
+        company.location?.toLowerCase().includes(search.toLowerCase());
+      const matchesExchange =
+        selectedExchange === "" || company.exchange === selectedExchange;
+      const matchesSector =
+        selectedSector === "" || company.sector === selectedSector;
+      return matchesSearch && matchesExchange && matchesSector;
+    })
+    .slice(0, 50);
+
+  // For filtered view, exclude audit companies
+  const filteredCompanies =
+    selectedExchange !== "" || selectedSector !== ""
+      ? [...filteredSmallcapCompanies, ...directoryCompanies].filter(
+          (company) =>
+            search.trim() === "" ||
+            company.name?.toLowerCase().includes(search.toLowerCase()) ||
+            company.industry?.toLowerCase().includes(search.toLowerCase()) ||
+            company.location?.toLowerCase().includes(search.toLowerCase())
+        )
+      : [
+          ...auditCompanies,
+          ...filteredSmallcapCompanies,
+          ...directoryCompanies,
+        ].filter(
+          (company) =>
+            search.trim() === "" ||
+            company.name?.toLowerCase().includes(search.toLowerCase()) ||
+            company.industry?.toLowerCase().includes(search.toLowerCase()) ||
+            company.location?.toLowerCase().includes(search.toLowerCase())
+        );
+
+  // Get all available exchanges and sectors from sheet data
+  const allExchanges = [
+    ...new Set(smallcapCompanies.map((c) => c.exchange).filter(Boolean)),
+  ];
+  const allSectors = [
+    ...new Set(smallcapCompanies.map((c) => c.sector).filter(Boolean)),
+  ];
+
+  // Format URL for clickable links
   const getFormattedUrl = (url) => {
     if (!url) return "";
     return url.startsWith("http") ? url : `https://${url}`;
   };
 
-  const renderCompanyCard = (company, index) => {
-    const name = company.name || company.company_name;
-
-    if (viewMode === "grid") {
-      return (
-        <div
-          key={company.id || index}
-          className="bg-white p-6 rounded-xl shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 relative overflow-hidden group"
-        >
-          <div className="flex items-start">
-            <div
-              className={`w-12 h-12 rounded-xl bg-gradient-to-br ${getGradientColor(
-                index
-              )} flex items-center justify-center mr-4 group-hover:scale-110 transition-transform duration-300 flex-shrink-0`}
-            >
-              <span className="text-white font-bold text-lg">
-                {name.charAt(0)}
-              </span>
-            </div>
-            <div className="flex-grow">
-              <h3 className="text-xl font-semibold text-gray-900 group-hover:text-blue-600 transition-colors mb-2">
-                {name}
-              </h3>
-
-              {company.domain && (
-                <div className="flex items-center text-gray-600 mb-1">
-                  <Globe size={16} className="mr-2 text-gray-400" />
-                  <a
-                    href={getFormattedUrl(company.domain)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-500 hover:underline truncate max-w-xs"
-                  >
-                    {company.domain}
-                  </a>
-                </div>
-              )}
-
-              {company.year_founded && (
-                <div className="flex items-center text-gray-600 mb-1">
-                  <Calendar size={16} className="mr-2 text-gray-400" />
-                  <span>Founded: {company.year_founded}</span>
-                </div>
-              )}
-
-              {company.industry && (
-                <div className="flex items-center text-gray-600 mb-1">
-                  <Briefcase size={16} className="mr-2 text-gray-400" />
-                  <span>{company.industry}</span>
-                </div>
-              )}
-
-              {company.size_range && (
-                <div className="flex items-center text-gray-600 mb-1">
-                  <Users size={16} className="mr-2 text-gray-400" />
-                  <span>{company.size_range}</span>
-                </div>
-              )}
-
-              {(company.locality || company.country) && (
-                <div className="flex items-center text-gray-600 mb-1">
-                  <MapPin size={16} className="mr-2 text-gray-400" />
-                  <span>
-                    {[company.locality, company.country]
-                      .filter(Boolean)
-                      .join(", ")}
-                  </span>
-                </div>
-              )}
-
-              {company.linkedin_url && (
-                <div className="flex items-center text-gray-600">
-                  <Linkedin size={16} className="mr-2 text-gray-400" />
-                  <a
-                    href={getFormattedUrl(company.linkedin_url)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-500 hover:underline truncate max-w-xs"
-                  >
-                    LinkedIn
-                  </a>
-                </div>
-              )}
-            </div>
-
-            {company.source === "audit" && (
-              <Link
-                to={`/${encodeURIComponent(name)}`}
-                className="absolute right-4 top-4 text-gray-400 hover:text-blue-500 transform hover:translate-x-1 transition-all"
-              >
-                <ArrowRight />
-              </Link>
-            )}
-          </div>
-
-          <div className="absolute -right-20 -bottom-20 opacity-5 group-hover:opacity-10 transition-opacity">
-            <Building2 size={120} />
-          </div>
-
-          {company.source && (
-            <div className="absolute bottom-2 right-2">
-              <span
-                className={`text-xs px-2 py-1 rounded-full ${
-                  company.source === "audit"
-                    ? "bg-blue-100 text-blue-700"
-                    : "bg-emerald-100 text-emerald-700"
-                }`}
-              >
-                {company.source === "audit" ? "Audit" : "Directory"}
-              </span>
-            </div>
-          )}
-        </div>
-      );
-    } else {
-      // List view
-      return (
-        <div
-          key={company.id || index}
-          className="bg-white p-4 rounded-xl shadow-sm hover:shadow-lg transition-all duration-300 border border-gray-100 group"
-        >
-          <div className="flex items-center">
-            <div
-              className={`w-10 h-10 rounded-lg bg-gradient-to-br ${getGradientColor(
-                index
-              )} flex items-center justify-center mr-3 group-hover:scale-110 transition-transform duration-300 flex-shrink-0`}
-            >
-              <span className="text-white font-bold text-sm">
-                {name.charAt(0)}
-              </span>
-            </div>
-
-            <div className="flex-grow grid grid-cols-1 md:grid-cols-3 gap-x-4 gap-y-1">
-              <h3 className="text-lg font-semibold text-gray-900 group-hover:text-blue-600 transition-colors md:col-span-3">
-                {name}
-              </h3>
-
-              {company.domain && (
-                <div className="flex items-center text-gray-600 text-sm">
-                  <Globe size={14} className="mr-1 text-gray-400" />
-                  <a
-                    href={getFormattedUrl(company.domain)}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-500 hover:underline truncate"
-                  >
-                    {company.domain}
-                  </a>
-                </div>
-              )}
-
-              {company.industry && (
-                <div className="flex items-center text-gray-600 text-sm">
-                  <Briefcase size={14} className="mr-1 text-gray-400" />
-                  <span className="truncate">{company.industry}</span>
-                </div>
-              )}
-
-              {(company.locality || company.country) && (
-                <div className="flex items-center text-gray-600 text-sm">
-                  <MapPin size={14} className="mr-1 text-gray-400" />
-                  <span className="truncate">
-                    {[company.locality, company.country]
-                      .filter(Boolean)
-                      .join(", ")}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            {company.source === "audit" && (
-              <Link
-                to={`/${encodeURIComponent(name)}`}
-                className="ml-2 text-gray-400 hover:text-blue-500 transform hover:translate-x-1 transition-all"
-              >
-                <ArrowRight />
-              </Link>
-            )}
-
-            {company.source && (
-              <span
-                className={`ml-2 text-xs px-2 py-1 rounded-full ${
-                  company.source === "audit"
-                    ? "bg-blue-100 text-blue-700"
-                    : "bg-emerald-100 text-emerald-700"
-                }`}
-              >
-                {company.source === "audit" ? "Audit" : "Directory"}
-              </span>
-            )}
-          </div>
-        </div>
-      );
-    }
+  // Get companies based on tab
+  const getCompaniesForDisplay = () => {
+    if (activeTab === "audit") return auditCompanies;
+    if (activeTab === "smallcap") return filteredSmallcapCompanies;
+    if (activeTab === "directory") return directoryCompanies;
+    return filteredCompanies;
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 md:p-8">
-      <div className="max-w-6xl mx-auto">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-            Company Explorer
-          </h1>
-          <p className="text-gray-600 mt-4 text-lg">
-            Discover and explore our extensive network of companies from
-            multiple sources
-          </p>
+  // Render company card with enhanced 3D effect
+  const renderCompanyCard = (company, index) => {
+    const sourceColors = {
+      audit: {
+        bg: "bg-gradient-to-br from-blue-600 to-indigo-700",
+        text: "text-blue-700",
+        light: "bg-blue-100",
+        highlight: "from-blue-300 to-indigo-300",
+      },
+      smallcap: {
+        bg: "bg-gradient-to-br from-emerald-600 to-teal-700",
+        text: "text-emerald-700",
+        light: "bg-emerald-100",
+        highlight: "from-emerald-300 to-teal-300",
+      },
+      directory: {
+        bg: "bg-gradient-to-br from-violet-600 to-purple-700",
+        text: "text-violet-700",
+        light: "bg-violet-100",
+        highlight: "from-violet-300 to-purple-300",
+      },
+    };
+
+    const colorSet = sourceColors[company.source];
+
+    return (
+      <Link
+        to={`/${encodeURIComponent(company.name)}`}
+        key={company.id || index}
+        className="group relative bg-white rounded-2xl overflow-hidden transition-all duration-300 shadow-sm hover:shadow-2xl transform hover:-translate-y-1 flex flex-col h-full"
+      >
+        {/* Card header with 3D effect */}
+        <div className={`h-20 ${colorSet.bg} overflow-hidden relative`}>
+          <div className="absolute inset-0 opacity-20">
+            <div className="absolute -right-4 -top-12 w-32 h-32 bg-white/20 rounded-full"></div>
+            <div className="absolute right-20 -bottom-12 w-24 h-24 bg-white/10 rounded-full"></div>
+            <div className="absolute left-10 -bottom-16 w-40 h-40 bg-white/10 rounded-full"></div>
+          </div>
+          <div className="absolute bottom-0 left-0 w-full h-16 bg-gradient-to-t from-white to-transparent"></div>
         </div>
 
-        <div className="bg-white p-4 rounded-xl shadow-md mb-8">
-          <form
-            onSubmit={handleSearch}
-            className="relative mb-4 transform hover:scale-102 transition-all duration-300"
-          >
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search companies by name, industry, location..."
-              className="w-full pl-14 pr-6 py-4 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all outline-none text-lg"
-            />
-            <Search className="absolute left-5 top-5 text-gray-400" size={24} />
-            <button
-              type="submit"
-              className="absolute right-3 top-3 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
-            >
-              Search
-            </button>
-          </form>
-
-          <div className="flex flex-col sm:flex-row justify-between items-center mb-2">
-            <div className="flex mb-4 sm:mb-0 bg-gray-100 p-1 rounded-lg">
-              <button
-                onClick={() => setActiveTab("all")}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  activeTab === "all"
-                    ? "bg-white text-blue-600 shadow-sm"
-                    : "text-gray-600 hover:bg-gray-200"
-                }`}
-              >
-                All Sources
-              </button>
-              <button
-                onClick={() => setActiveTab("audit")}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  activeTab === "audit"
-                    ? "bg-white text-blue-600 shadow-sm"
-                    : "text-gray-600 hover:bg-gray-200"
-                }`}
-              >
-                Audit Data
-              </button>
-              <button
-                onClick={() => setActiveTab("directory")}
-                className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                  activeTab === "directory"
-                    ? "bg-white text-blue-600 shadow-sm"
-                    : "text-gray-600 hover:bg-gray-200"
-                }`}
-              >
-                Directory
-              </button>
-            </div>
-
-            <div className="flex space-x-2 bg-gray-100 p-1 rounded-lg">
-              <button
-                onClick={() => setViewMode("grid")}
-                className={`px-3 py-2 rounded-lg transition-colors ${
-                  viewMode === "grid"
-                    ? "bg-white text-blue-600 shadow-sm"
-                    : "text-gray-600 hover:bg-gray-200"
-                }`}
-              >
-                <div className="grid grid-cols-2 gap-0.5">
-                  <div className="w-3 h-3 bg-current rounded-sm"></div>
-                  <div className="w-3 h-3 bg-current rounded-sm"></div>
-                  <div className="w-3 h-3 bg-current rounded-sm"></div>
-                  <div className="w-3 h-3 bg-current rounded-sm"></div>
-                </div>
-              </button>
-              <button
-                onClick={() => setViewMode("list")}
-                className={`px-3 py-2 rounded-lg transition-colors ${
-                  viewMode === "list"
-                    ? "bg-white text-blue-600 shadow-sm"
-                    : "text-gray-600 hover:bg-gray-200"
-                }`}
-              >
-                <div className="flex flex-col space-y-1">
-                  <div className="w-8 h-2 bg-current rounded-sm"></div>
-                  <div className="w-8 h-2 bg-current rounded-sm"></div>
-                  <div className="w-8 h-2 bg-current rounded-sm"></div>
-                </div>
-              </button>
-            </div>
-          </div>
-        </div>
-
-        {loading ? (
-          <div className="flex justify-center items-center h-64">
-            <div className="relative w-20 h-20">
-              <div className="w-20 h-20 border-4 border-blue-200 border-t-blue-500 rounded-full animate-spin"></div>
-              <div className="w-16 h-16 border-4 border-purple-200 border-t-purple-500 rounded-full animate-spin absolute top-2 left-2"></div>
-            </div>
-          </div>
-        ) : (
+        {/* Company Logo/Initial */}
+        <div className="flex justify-center -mt-10 mb-3">
           <div
-            className={
-              viewMode === "grid"
-                ? "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
-                : "flex flex-col space-y-3"
-            }
+            className={`w-20 h-20 rounded-xl ${colorSet.bg} flex items-center justify-center shadow-lg transform group-hover:scale-105 transition-transform duration-300 flex-shrink-0 border-4 border-white`}
           >
-            {companies.length > 0 ? (
-              companies.map((company, index) =>
-                renderCompanyCard(company, index)
-              )
-            ) : (
-              <div className="col-span-full text-center py-20">
-                <Building2 size={64} className="mx-auto text-gray-300 mb-4" />
-                <h3 className="text-xl font-medium text-gray-700">
-                  No companies found
-                </h3>
-                <p className="text-gray-500 mt-2">
-                  Try adjusting your search criteria
-                </p>
+            <span className="text-white font-bold text-2xl">
+              {company.name.charAt(0)}
+            </span>
+          </div>
+        </div>
+
+        {/* Company Info */}
+        <div className="px-6 pt-2 pb-6 flex-grow">
+          <h3 className="text-xl font-bold text-gray-900 text-center mb-4 group-hover:text-blue-600 transition-colors">
+            {company.name}
+          </h3>
+
+          <div className="space-y-2.5">
+            {company.industry && (
+              <div className="flex items-center text-gray-700">
+                <Briefcase size={16} className="mr-3 text-gray-500" />
+                <span className="text-sm">{company.industry}</span>
+              </div>
+            )}
+            {company.location && (
+              <div className="flex items-center text-gray-700">
+                <MapPin size={16} className="mr-3 text-gray-500" />
+                <span className="text-sm">{company.location}</span>
+              </div>
+            )}
+            {company.website && (
+              <div className="flex items-center text-gray-700">
+                <Globe size={16} className="mr-3 text-gray-500" />
+                <a
+                  href={getFormattedUrl(company.website)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-blue-500 hover:underline truncate max-w-xs"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  {company.website.replace(/^https?:\/\/(www\.)?/, "")}
+                </a>
+              </div>
+            )}
+            {company.source === "smallcap" && (
+              <>
+                {company.exchange && (
+                  <div className="flex items-center text-gray-700">
+                    <Building2 size={16} className="mr-3 text-gray-500" />
+                    <span className="text-sm">
+                      Exchange: {company.exchange}
+                    </span>
+                  </div>
+                )}
+                {company.valuation && (
+                  <div className="flex items-center text-gray-700">
+                    <Star size={16} className="mr-3 text-gray-500" />
+                    <span className="text-sm">
+                      Valuation: {company.valuation}
+                    </span>
+                  </div>
+                )}
+              </>
+            )}
+            {company.year_founded && (
+              <div className="flex items-center text-gray-700">
+                <Calendar size={16} className="mr-3 text-gray-500" />
+                <span className="text-sm">Founded: {company.year_founded}</span>
+              </div>
+            )}
+            {company.size_range && (
+              <div className="flex items-center text-gray-700">
+                <Users size={16} className="mr-3 text-gray-500" />
+                <span className="text-sm">{company.size_range}</span>
+              </div>
+            )}
+            {company.linkedin_url && (
+              <div className="flex items-center text-gray-700">
+                <Linkedin size={16} className="mr-3 text-gray-500" />
+                <a
+                  href={getFormattedUrl(company.linkedin_url)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-blue-500 hover:underline truncate max-w-xs"
+                  onClick={(e) => e.stopPropagation()}
+                >
+                  LinkedIn
+                </a>
               </div>
             )}
           </div>
-        )}
+        </div>
 
-        {activeTab === "audit" && total > limit && (
-          <div className="mt-8 flex justify-center">
-            <div className="flex space-x-2 bg-white p-2 rounded-xl shadow-sm">
-              {Array.from(
-                { length: Math.ceil(total / limit) },
-                (_, i) => i + 1
-              ).map((num) => (
-                <button
-                  key={num}
-                  onClick={() => setPage(num)}
-                  className={`px-4 py-2 rounded-lg font-medium transition-all duration-300 ${
-                    page === num
-                      ? "bg-gradient-to-r from-blue-500 to-purple-500 text-white shadow-md scale-105"
-                      : "text-gray-600 hover:bg-gray-50"
-                  }`}
+        {/* Source Tag */}
+        <div className="absolute top-4 right-4">
+          <span
+            className={`text-xs font-medium px-3 py-1 rounded-full ${colorSet.light} ${colorSet.text} shadow-sm`}
+          >
+            {company.source.charAt(0).toUpperCase() + company.source.slice(1)}
+          </span>
+        </div>
+
+        {/* 3D hover effect elements */}
+        <div className="absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-5 transition-opacity duration-300 pointer-events-none"></div>
+        <div className="absolute bottom-0 right-0 w-40 h-40 bg-gradient-to-tl ${colorSet.highlight} opacity-0 group-hover:opacity-10 rounded-full -mb-20 -mr-20 transition-opacity duration-300 pointer-events-none"></div>
+      </Link>
+    );
+  };
+
+  return (
+    <div className="min-h-screen bg-gradient-to-b from-gray-50 to-gray-100">
+      {/* Header with 3D effect */}
+      <div className="relative bg-gradient-to-r from-blue-600 via-indigo-600 to-violet-600 pt-16 pb-32 px-6 overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden">
+          <div className="absolute left-1/4 top-0 w-96 h-96 bg-white opacity-10 rounded-full translate-x-1/2 -translate-y-1/2 blur-2xl"></div>
+          <div className="absolute right-1/4 bottom-0 w-96 h-96 bg-indigo-300 opacity-10 rounded-full -translate-x-1/2 translate-y-1/2 blur-2xl"></div>
+          <div className="absolute left-1/3 bottom-1/4 w-64 h-64 bg-blue-300 opacity-20 rounded-full blur-xl"></div>
+        </div>
+
+        <div className="max-w-6xl mx-auto relative">
+          <div className="text-center">
+            <h1 className="text-5xl font-bold text-white mb-4 tracking-tight">
+              <span className="inline-block relative">
+                <Sparkles
+                  size={24}
+                  className="absolute -top-6 -right-8 text-yellow-300 animate-pulse"
+                />
+                FBA Company Explorer
+              </span>
+            </h1>
+            <p className="text-blue-100 text-xl max-w-3xl mx-auto">
+              Discover and explore our extensive network of companies from
+              multiple sources worldwide
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Main Content */}
+      <div className="max-w-6xl mx-auto px-4 -mt-20 relative z-10 pb-20">
+        {/* Search Bar with 3D effect */}
+        <div className="bg-white rounded-2xl shadow-xl p-6 mb-8 transform transition-all duration-300 hover:shadow-2xl">
+          <form onSubmit={(e) => e.preventDefault()} className="mb-6">
+            <div className="relative">
+              <input
+                type="text"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Search companies by name, industry, location..."
+                className="w-full pl-14 pr-6 py-5 rounded-xl border-2 border-gray-200 focus:border-blue-500 focus:ring-4 focus:ring-blue-100 transition-all outline-none text-lg shadow-sm"
+              />
+              <Search
+                className="absolute left-5 top-5 text-gray-400"
+                size={24}
+              />
+              <div className="absolute inset-0 rounded-xl bg-gradient-to-r from-blue-500/5 via-purple-500/5 to-pink-500/5 opacity-0 hover:opacity-100 pointer-events-none transition-opacity"></div>
+            </div>
+          </form>
+
+          {/* Filter Row */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="relative group">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Exchange
+              </label>
+              <div className="relative">
+                <select
+                  className="w-full pl-4 pr-10 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 appearance-none shadow-sm"
+                  value={selectedExchange}
+                  onChange={(e) => setSelectedExchange(e.target.value)}
                 >
-                  {num}
-                </button>
-              ))}
+                  <option value="">All Exchanges</option>
+                  {allExchanges.map((exchange, idx) => (
+                    <option key={idx} value={exchange}>
+                      {exchange}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown
+                  size={18}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none"
+                />
+                <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-blue-500/5 to-indigo-500/5 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity"></div>
+              </div>
+            </div>
+
+            <div className="relative group">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Sector
+              </label>
+              <div className="relative">
+                <select
+                  className="w-full pl-4 pr-10 py-3 bg-white border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 appearance-none shadow-sm"
+                  value={selectedSector}
+                  onChange={(e) => setSelectedSector(e.target.value)}
+                >
+                  <option value="">All Sectors</option>
+                  {allSectors.map((sector, idx) => (
+                    <option key={idx} value={sector}>
+                      {sector}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown
+                  size={18}
+                  className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-500 pointer-events-none"
+                />
+                <div className="absolute inset-0 rounded-lg bg-gradient-to-r from-purple-500/5 to-pink-500/5 opacity-0 group-hover:opacity-100 pointer-events-none transition-opacity"></div>
+              </div>
             </div>
           </div>
+        </div>
+
+        {/* Tabs */}
+        <div className="bg-white rounded-2xl shadow-lg p-4 mb-8">
+          <div className="flex flex-wrap justify-between items-center">
+            <div className="flex space-x-2 overflow-x-auto pb-2 scrollbar-hide">
+              <button
+                onClick={() => setActiveTab("all")}
+                className={`px-4 py-2 rounded-lg font-medium text-sm transition-all ${
+                  activeTab === "all"
+                    ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
+              >
+                All Companies
+              </button>
+              <button
+                onClick={() => setActiveTab("audit")}
+                className={`px-4 py-2 rounded-lg font-medium text-sm transition-all flex items-center ${
+                  activeTab === "audit"
+                    ? "bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-md"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
+              >
+                <Building2 size={14} className="mr-1" />
+                Audit ({auditCompanies.length})
+              </button>
+              <button
+                onClick={() => setActiveTab("smallcap")}
+                className={`px-4 py-2 rounded-lg font-medium text-sm transition-all flex items-center ${
+                  activeTab === "smallcap"
+                    ? "bg-gradient-to-r from-emerald-600 to-teal-600 text-white shadow-md"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
+              >
+                <Star size={14} className="mr-1" />
+                SmallCap ({filteredSmallcapCompanies.length})
+              </button>
+              <button
+                onClick={() => setActiveTab("directory")}
+                className={`px-4 py-2 rounded-lg font-medium text-sm transition-all flex items-center ${
+                  activeTab === "directory"
+                    ? "bg-gradient-to-r from-violet-600 to-purple-600 text-white shadow-md"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
+              >
+                <Globe size={14} className="mr-1" />
+                Directory ({directoryCompanies.length})
+              </button>
+            </div>
+
+            <div className="text-sm text-gray-600 font-medium">
+              Showing {getCompaniesForDisplay().length} results
+            </div>
+          </div>
+        </div>
+
+        {/* Company List */}
+        {loading ? (
+          <div className="flex justify-center items-center h-64">
+            <div className="relative">
+              <div className="w-20 h-20 border-4 border-blue-200 border-t-blue-500 rounded-full animate-spin"></div>
+              <div className="w-14 h-14 border-4 border-purple-200 border-t-purple-500 rounded-full animate-spin absolute top-3 left-3"></div>
+              <div className="w-8 h-8 border-4 border-pink-200 border-t-pink-500 rounded-full animate-spin absolute top-6 left-6"></div>
+            </div>
+          </div>
+        ) : (
+          <>
+            {getCompaniesForDisplay().length > 0 ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {getCompaniesForDisplay().map((company, index) =>
+                  renderCompanyCard(company, index)
+                )}
+              </div>
+            ) : (
+              <div className="bg-white rounded-2xl shadow-lg p-10 text-center">
+                <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
+                  <Building2 size={48} className="text-gray-400" />
+                </div>
+                <h3 className="text-2xl font-bold text-gray-700 mb-2">
+                  No companies found
+                </h3>
+                <p className="text-gray-500 max-w-md mx-auto">
+                  Try adjusting your search criteria or filters to find the
+                  companies you're looking for
+                </p>
+                <button
+                  onClick={() => {
+                    setSearch("");
+                    setSelectedExchange("");
+                    setSelectedSector("");
+                  }}
+                  className="mt-6 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors shadow-md"
+                >
+                  Reset Filters
+                </button>
+              </div>
+            )}
+          </>
         )}
+      </div>
+
+      {/* Footer */}
+      <div className="bg-gray-900 text-white py-8 px-6">
+        <div className="max-w-6xl mx-auto">
+          <div className="flex flex-col md:flex-row justify-between items-center">
+            <div className="mb-4 md:mb-0">
+              <div className="flex items-center">
+                <Layers className="mr-2 text-blue-400" />
+                <span className="font-bold text-xl">FBA Company Explorer</span>
+              </div>
+              <p className="text-gray-400 text-sm mt-2">
+                The most comprehensive company database worldwide
+              </p>
+            </div>
+            <div className="flex space-x-4">
+              <a
+                href="#"
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <Globe size={20} />
+              </a>
+              <a
+                href="#"
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <Linkedin size={20} />
+              </a>
+              <a
+                href="#"
+                className="text-gray-400 hover:text-white transition-colors"
+              >
+                <Building2 size={20} />
+              </a>
+            </div>
+          </div>
+          <div className="mt-6 pt-6 border-t border-gray-800 text-center text-gray-500 text-sm">
+            © {new Date().getFullYear()} FBA Company Explorer. All rights
+            reserved.
+          </div>
+        </div>
       </div>
     </div>
   );
