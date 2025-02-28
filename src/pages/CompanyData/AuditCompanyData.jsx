@@ -1,5 +1,15 @@
 import React, { useState } from "react";
-import { ChevronDown, ExternalLink, Building2 } from "lucide-react";
+import {
+  ChevronDown,
+  ExternalLink,
+  Building2,
+  BarChart3,
+  Users,
+  Briefcase,
+  Scale,
+  Cpu,
+  AlertTriangle,
+} from "lucide-react";
 
 export const fetchAuditData = async (companyName, BASE_URL) => {
   try {
@@ -54,7 +64,7 @@ const renderValue = (value, depth = 0) => {
         {value.map((item, index) => (
           <div
             key={index}
-            className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
+            className="p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors shadow-sm hover:shadow transform hover:-translate-y-1 transition-all duration-300"
           >
             {renderValue(item, depth + 1)}
           </div>
@@ -66,7 +76,7 @@ const renderValue = (value, depth = 0) => {
   if (typeof value === "object") {
     return (
       <div
-        className={`rounded-lg border border-gray-200 overflow-hidden ${
+        className={`rounded-lg border border-gray-200 overflow-hidden shadow-sm hover:shadow transition-all duration-300 ${
           depth > 0 ? "bg-white" : "bg-gray-50"
         }`}
       >
@@ -92,10 +102,10 @@ const renderValue = (value, depth = 0) => {
   if (typeof value === "boolean") {
     return (
       <span
-        className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+        className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium transition-colors shadow-sm ${
           value
-            ? "bg-green-100 text-green-800 hover:bg-green-200"
-            : "bg-red-100 text-red-800 hover:bg-red-200"
+            ? "bg-gradient-to-r from-green-100 to-green-200 text-green-800 hover:from-green-200 hover:to-green-300"
+            : "bg-gradient-to-r from-red-100 to-red-200 text-red-800 hover:from-red-200 hover:to-red-300"
         }`}
       >
         {value ? "Yes" : "No"}
@@ -104,6 +114,25 @@ const renderValue = (value, depth = 0) => {
   }
 
   return <span className="text-gray-700 break-words">{value.toString()}</span>;
+};
+
+const getSectionIcon = (sectionKey) => {
+  switch (sectionKey.toLowerCase()) {
+    case "audit":
+      return <Cpu size={20} />;
+    case "executives":
+      return <Users size={20} />;
+    case "financial":
+      return <BarChart3 size={20} />;
+    case "employee_&_hr":
+      return <Briefcase size={20} />;
+    case "competitors":
+      return <Users size={20} />;
+    case "legalrisk":
+      return <Scale size={20} />;
+    default:
+      return <AlertTriangle size={20} />;
+  }
 };
 
 const AuditCompanyData = ({ auditData }) => {
@@ -139,19 +168,26 @@ const AuditCompanyData = ({ auditData }) => {
     .map((key) => [key, auditData.data[key]]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 p-4 lg:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-gray-50 to-purple-50 p-4 lg:p-8">
       <div className="max-w-7xl mx-auto">
-        <div className="bg-white rounded-2xl shadow-sm p-6 lg:p-8 mb-8 relative overflow-hidden">
+        <div className="bg-white rounded-2xl shadow-md p-6 lg:p-8 mb-8 relative overflow-hidden backdrop-blur-sm bg-white/90 border border-gray-100 hover:shadow-lg transition-all duration-300">
           <div className="relative z-10">
-            <h1 className="text-2xl lg:text-4xl font-bold text-gray-900 mb-3 bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+            <div className="flex items-center gap-3 mb-2">
+              <Building2 className="text-blue-600" size={32} />
+              <div className="bg-blue-100 text-blue-800 rounded-full px-3 py-1 text-xs font-semibold">
+                Company Audit
+              </div>
+            </div>
+            <h1 className="text-2xl lg:text-4xl font-bold text-gray-900 mb-3 bg-gradient-to-r from-blue-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent">
               {auditData.data.properties?.title}
             </h1>
             <p className="text-gray-600 text-base lg:text-lg">
               {auditData.data.properties?.short_description}
             </p>
           </div>
+          <div className="absolute right-0 top-0 w-64 h-64 bg-gradient-to-br from-blue-100/30 to-purple-100/30 rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/2 z-0"></div>
           <Building2
-            className="absolute right-0 top-0 text-gray-100 opacity-20 transform translate-x-1/4 -translate-y-1/4"
+            className="absolute right-8 top-8 text-gray-100 opacity-20 transform rotate-12 z-0"
             size={200}
           />
         </div>
@@ -160,21 +196,28 @@ const AuditCompanyData = ({ auditData }) => {
           {sortedData.map(([sectionKey, sectionValue]) => (
             <div
               key={sectionKey}
-              className="bg-white rounded-xl shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md"
+              className="bg-white rounded-xl shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md border border-gray-100"
             >
               <button
                 onClick={() => toggleSection(sectionKey)}
                 className="w-full px-6 py-4 flex items-center justify-between bg-gradient-to-r from-gray-50 to-white hover:from-blue-50 hover:to-white transition-colors duration-300"
               >
-                <h2 className="text-lg lg:text-xl font-semibold text-gray-800 capitalize">
-                  {sectionKey.replace(/_/g, " ")}
-                </h2>
-                <ChevronDown
-                  size={24}
-                  className={`text-gray-400 transition-transform duration-300 ${
-                    expandedSections[sectionKey] ? "rotate-180" : ""
-                  }`}
-                />
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center bg-gradient-to-br from-blue-100 to-purple-100 text-blue-700">
+                    {getSectionIcon(sectionKey)}
+                  </div>
+                  <h2 className="text-lg lg:text-xl font-semibold text-gray-800 capitalize">
+                    {sectionKey.replace(/_/g, " ")}
+                  </h2>
+                </div>
+                <div className="w-8 h-8 rounded-full flex items-center justify-center bg-gray-100 group-hover:bg-blue-100 transition-colors">
+                  <ChevronDown
+                    size={20}
+                    className={`text-gray-500 transition-transform duration-300 ${
+                      expandedSections[sectionKey] ? "rotate-180" : ""
+                    }`}
+                  />
+                </div>
               </button>
 
               {expandedSections[sectionKey] && (
@@ -186,20 +229,27 @@ const AuditCompanyData = ({ auditData }) => {
           ))}
 
           {auditData.data.info?.key_employee_change_list && (
-            <div className="bg-white rounded-xl shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md">
+            <div className="bg-white rounded-xl shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md border border-gray-100">
               <button
                 onClick={() => toggleSection("employee_changes")}
                 className="w-full px-6 py-4 flex items-center justify-between bg-gradient-to-r from-gray-50 to-white hover:from-blue-50 hover:to-white transition-colors duration-300"
               >
-                <h2 className="text-lg lg:text-xl font-semibold text-gray-800">
-                  Key Employee Changes
-                </h2>
-                <ChevronDown
-                  size={24}
-                  className={`text-gray-400 transition-transform duration-300 ${
-                    expandedSections["employee_changes"] ? "rotate-180" : ""
-                  }`}
-                />
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full flex items-center justify-center bg-gradient-to-br from-blue-100 to-purple-100 text-blue-700">
+                    <Users size={20} />
+                  </div>
+                  <h2 className="text-lg lg:text-xl font-semibold text-gray-800">
+                    Key Employee Changes
+                  </h2>
+                </div>
+                <div className="w-8 h-8 rounded-full flex items-center justify-center bg-gray-100 group-hover:bg-blue-100 transition-colors">
+                  <ChevronDown
+                    size={20}
+                    className={`text-gray-500 transition-transform duration-300 ${
+                      expandedSections["employee_changes"] ? "rotate-180" : ""
+                    }`}
+                  />
+                </div>
               </button>
 
               {expandedSections["employee_changes"] && (
@@ -209,7 +259,7 @@ const AuditCompanyData = ({ auditData }) => {
                       (change, index) => (
                         <div
                           key={index}
-                          className="bg-gray-50 rounded-lg p-4 hover:bg-gray-100 transition-colors duration-300"
+                          className="bg-gray-50 rounded-lg p-4 hover:bg-blue-50 transition-colors duration-300 shadow-sm hover:shadow transform hover:-translate-y-1"
                         >
                           {renderValue(change)}
                         </div>
