@@ -12,6 +12,10 @@ import {
   Cpu,
   Menu,
   X,
+  House,
+  ShoppingBag,
+  Dumbbell,
+  Instagram,
 } from "lucide-react";
 import SmallcapCompanies from "./CompanyList/smallcapList";
 import DirectoryCompanies from "./CompanyList/DirectoryList";
@@ -20,6 +24,7 @@ import KnowYourAICompanies from "./CompanyList/knowyouraiList";
 import WafflerCompanies from "./CompanyList/WaffletList";
 import GaitCompanyList from "./CompanyList/GaitList";
 import ColiveCompanies from "./CompanyList/ColiveList";
+import HandbagCompanies from "./CompanyList/HandbagList";
 
 const CompanyList = () => {
   const [search, setSearch] = useState("");
@@ -121,6 +126,7 @@ const CompanyList = () => {
             <WafflerCompanies search={search} />
             <GaitCompanyList search={search} />
             <ColiveCompanies search={search} />
+            <HandbagCompanies search={search} />
             <DirectoryCompanies search={search} />
           </div>
         );
@@ -142,6 +148,8 @@ const CompanyList = () => {
         return <GaitCompanyList search={search} />;
       case "colive":
         return <ColiveCompanies search={search} />;
+      case "handbag":
+        return <HandbagCompanies search={search} />;
       case "directory":
         return <DirectoryCompanies search={search} />;
       default:
@@ -361,7 +369,7 @@ const CompanyList = () => {
                     : "text-gray-600 hover:bg-gray-100"
                 }`}
               >
-                <Cpu size={14} className="mr-1" />
+                <Instagram size={14} className="mr-1" />
                 Waffler
               </button>
               <button
@@ -372,7 +380,7 @@ const CompanyList = () => {
                     : "text-gray-600 hover:bg-gray-100"
                 }`}
               >
-                <Cpu size={14} className="mr-1" />
+                <Dumbbell size={14} className="mr-1" />
                 Gait
               </button>
               <button
@@ -383,8 +391,19 @@ const CompanyList = () => {
                     : "text-gray-600 hover:bg-gray-100"
                 }`}
               >
-                <Cpu size={14} className="mr-1" />
+                <House size={14} className="mr-1" />
                 Colive
+              </button>
+              <button
+                onClick={() => setActiveTab("handbag")}
+                className={`px-4 py-2 rounded-lg font-medium text-sm transition-all duration-300 flex items-center ${
+                  activeTab === "handbag"
+                    ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
+              >
+                <ShoppingBag size={14} className="mr-1" />
+                Handbag
               </button>
               <button
                 onClick={() => setActiveTab("directory")}
