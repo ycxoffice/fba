@@ -19,6 +19,7 @@ import AuditCompanies from "./CompanyList/AuditList";
 import KnowYourAICompanies from "./CompanyList/knowyouraiList";
 import WafflerCompanies from "./CompanyList/WaffletList";
 import GaitCompanyList from "./CompanyList/GaitList";
+import ColiveCompanies from "./CompanyList/ColiveList";
 
 const CompanyList = () => {
   const [search, setSearch] = useState("");
@@ -119,6 +120,7 @@ const CompanyList = () => {
             <KnowYourAICompanies search={search} />
             <WafflerCompanies search={search} />
             <GaitCompanyList search={search} />
+            <ColiveCompanies search={search} />
             <DirectoryCompanies search={search} />
           </div>
         );
@@ -138,6 +140,8 @@ const CompanyList = () => {
         return <WafflerCompanies search={search} />;
       case "gait":
         return <GaitCompanyList search={search} />;
+      case "colive":
+        return <ColiveCompanies search={search} />;
       case "directory":
         return <DirectoryCompanies search={search} />;
       default:
@@ -363,13 +367,24 @@ const CompanyList = () => {
               <button
                 onClick={() => setActiveTab("gait")}
                 className={`px-4 py-2 rounded-lg font-medium text-sm transition-all duration-300 flex items-center ${
-                  activeTab === "waffler"
+                  activeTab === "gait"
                     ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md"
                     : "text-gray-600 hover:bg-gray-100"
                 }`}
               >
                 <Cpu size={14} className="mr-1" />
                 Gait
+              </button>
+              <button
+                onClick={() => setActiveTab("colive")}
+                className={`px-4 py-2 rounded-lg font-medium text-sm transition-all duration-300 flex items-center ${
+                  activeTab === "colive"
+                    ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
+              >
+                <Cpu size={14} className="mr-1" />
+                Colive
               </button>
               <button
                 onClick={() => setActiveTab("directory")}

@@ -24,7 +24,7 @@ export const fetchGaitCompanyData = async (companyName) => {
       ) || null
     );
   } catch (error) {
-    console.error("Wafflerdata fetch error:", error);
+    console.error("Gait fetch error:", error);
     return null;
   }
 };

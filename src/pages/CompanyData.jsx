@@ -15,6 +15,9 @@ import WafflerCompanyData, {
 import GaitCompanyData, {
   fetchGaitCompanyData,
 } from "./CompanyData/GaitCompanyData";
+import ColiveCompanyData, {
+  fetchColiveCompanyData,
+} from "./CompanyData/ColiveCompanyData";
 
 const CompanyData = () => {
   const { companyName } = useParams();
@@ -76,6 +79,16 @@ const CompanyData = () => {
           return;
         }
 
+        const ColiveCompanyData = await fetchColiveCompanyData(
+          decodedCompanyName
+        );
+        if (ColiveCompanyData) {
+          setData(ColiveCompanyData);
+          setSource("colive");
+          setLoading(false);
+          return;
+        }
+
         setError("Company not found");
       } catch (err) {
         setError("Failed to fetch company data");
@@ -99,6 +112,7 @@ const CompanyData = () => {
       )}
       {source === "waffler" && <WafflerCompanyData WafflerCompanyData={data} />}
       {source === "gait" && <GaitCompanyData GaitCompanyData={data} />}
+      {source === "colive" && <ColiveCompanyData GaitCompanyData={data} />}
     </>
   );
 };
