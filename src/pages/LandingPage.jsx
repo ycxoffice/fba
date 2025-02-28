@@ -18,6 +18,7 @@ import DirectoryCompanies from "./CompanyList/DirectoryList";
 import AuditCompanies from "./CompanyList/AuditList";
 import KnowYourAICompanies from "./CompanyList/knowyouraiList";
 import WafflerCompanies from "./CompanyList/WaffletList";
+import GaitCompanyList from "./CompanyList/GaitList";
 
 const CompanyList = () => {
   const [search, setSearch] = useState("");
@@ -117,6 +118,7 @@ const CompanyList = () => {
             />
             <KnowYourAICompanies search={search} />
             <WafflerCompanies search={search} />
+            <GaitCompanyList search={search} />
             <DirectoryCompanies search={search} />
           </div>
         );
@@ -134,6 +136,8 @@ const CompanyList = () => {
         return <KnowYourAICompanies search={search} />;
       case "waffler":
         return <WafflerCompanies search={search} />;
+      case "gait":
+        return <GaitCompanyList search={search} />;
       case "directory":
         return <DirectoryCompanies search={search} />;
       default:
@@ -355,6 +359,17 @@ const CompanyList = () => {
               >
                 <Cpu size={14} className="mr-1" />
                 Waffler
+              </button>
+              <button
+                onClick={() => setActiveTab("gait")}
+                className={`px-4 py-2 rounded-lg font-medium text-sm transition-all duration-300 flex items-center ${
+                  activeTab === "waffler"
+                    ? "bg-gradient-to-r from-purple-600 to-indigo-600 text-white shadow-md"
+                    : "text-gray-600 hover:bg-gray-100"
+                }`}
+              >
+                <Cpu size={14} className="mr-1" />
+                Gait
               </button>
               <button
                 onClick={() => setActiveTab("directory")}

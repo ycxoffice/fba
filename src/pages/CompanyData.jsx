@@ -12,6 +12,9 @@ import KnowYourAICompanyData, {
 import WafflerCompanyData, {
   fetchWafflerCompanyData,
 } from "./CompanyData/wafflerdata";
+import GaitCompanyData, {
+  fetchGaitCompanyData,
+} from "./CompanyData/GaitCompanyData";
 
 const CompanyData = () => {
   const { companyName } = useParams();
@@ -29,7 +32,7 @@ const CompanyData = () => {
       setError(null);
 
       try {
-        // Try Audit data first
+        // Audit data
         const auditData = await fetchAuditData(decodedCompanyName, BASE_URL);
         if (auditData) {
           setData(auditData);
@@ -38,7 +41,7 @@ const CompanyData = () => {
           return;
         }
 
-        // Try Smallcap data second
+        //Smallcap data
         const smallcapData = await fetchSmallcapData(decodedCompanyName);
         if (smallcapData) {
           setData(smallcapData);
@@ -47,7 +50,6 @@ const CompanyData = () => {
           return;
         }
 
-        // Try KnowYourAI data last
         const knowyourAIData = await fetchKnowYourAIData(decodedCompanyName);
         if (knowyourAIData) {
           setData(knowyourAIData);
@@ -62,6 +64,14 @@ const CompanyData = () => {
         if (WafflerCompanyData) {
           setData(WafflerCompanyData);
           setSource("waffler");
+          setLoading(false);
+          return;
+        }
+
+        const GaitCompanyData = await fetchGaitCompanyData(decodedCompanyName);
+        if (GaitCompanyData) {
+          setData(GaitCompanyData);
+          setSource("gait");
           setLoading(false);
           return;
         }
@@ -88,6 +98,7 @@ const CompanyData = () => {
         <KnowYourAICompanyData knowyourAIData={data} />
       )}
       {source === "waffler" && <WafflerCompanyData WafflerCompanyData={data} />}
+      {source === "gait" && <GaitCompanyData GaitCompanyData={data} />}
     </>
   );
 };
