@@ -16,7 +16,7 @@ import {
 import SmallcapCompanies from "./CompanyList/smallcapList";
 import DirectoryCompanies from "./CompanyList/DirectoryList";
 import AuditCompanies from "./CompanyList/AuditList";
-import KnowYourAICompanies from "./CompanyList/KnowYourAiList";
+import KnowYourAICompanies from "./companyList/KnowYouraiList.jsx";
 
 const CompanyList = () => {
   const [search, setSearch] = useState("");
