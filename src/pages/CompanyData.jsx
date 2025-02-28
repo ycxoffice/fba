@@ -9,6 +9,9 @@ import SmallcapCompanyData, {
 import KnowYourAICompanyData, {
   fetchKnowYourAIData,
 } from "./CompanyData/knowyouraicompanydata";
+import WafflerCompanyData, {
+  fetchWafflerCompanyData,
+} from "./CompanyData/wafflerdata";
 
 const CompanyData = () => {
   const { companyName } = useParams();
@@ -53,6 +56,16 @@ const CompanyData = () => {
           return;
         }
 
+        const WafflerCompanyData = await fetchWafflerCompanyData(
+          decodedCompanyName
+        );
+        if (WafflerCompanyData) {
+          setData(WafflerCompanyData);
+          setSource("waffler");
+          setLoading(false);
+          return;
+        }
+
         setError("Company not found");
       } catch (err) {
         setError("Failed to fetch company data");
@@ -74,6 +87,7 @@ const CompanyData = () => {
       {source === "knowyourai" && (
         <KnowYourAICompanyData knowyourAIData={data} />
       )}
+      {source === "waffler" && <WafflerCompanyData WafflerCompanyData={data} />}
     </>
   );
 };

@@ -1,18 +1,17 @@
-//knwoyou ai companylist
 import React, { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
-import { Briefcase, MapPin, Globe, DollarSign, Star } from "lucide-react";
+import { Briefcase, MapPin, Globe, DollarSign } from "lucide-react";
 
-// Custom hook to fetch KnowYourAI companies
-const useKnowYourAICompanies = () => {
+// Custom hook to fetch Waffler companies
+const useWafflerCompanies = () => {
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchKnowYourAI = async () => {
+    const fetchWaffler = async () => {
       try {
-        const sheetId = "1098MT3Wgfzia7dKjxAyr7jxgH5PpdAt3AOaoII2J9xw";
-        const tabId = "794818920";
+        const sheetId = "1xw5acisWoWPYKXbzNA2Kue_Qvz6TGNll5gbZ_XqQ36M";
+        const tabId = "897055386";
         const url = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&gid=${tabId}`;
         const response = await fetch(url);
         const text = await response.text();
@@ -25,35 +24,35 @@ const useKnowYourAICompanies = () => {
           });
           return {
             name: company["Company Name"],
-            industry: company["Industry"],
+            industryFocus: company["Industry Focus"],
             headquarters: company["Headquarters"],
-            website: company["Website"],
-            valuation: company["Valuation"],
-            source: "knowyourai",
+            website: company["Website URL"],
+            valuation: company["Company Valuation"],
+            source: "waffler",
           };
         });
         setCompanies(rows);
       } catch (error) {
-        console.error("Error fetching KnowYourAI data:", error);
+        console.error("Error fetching Waffler data:", error);
       } finally {
         setLoading(false);
       }
     };
-    fetchKnowYourAI();
+    fetchWaffler();
   }, []);
 
   return { companies, loading };
 };
 
-const KnowYourAICompanies = ({ search }) => {
-  const { companies, loading } = useKnowYourAICompanies();
+const WafflerCompanies = ({ search }) => {
+  const { companies, loading } = useWafflerCompanies();
 
   const filteredCompanies = useMemo(() => {
     return companies.filter((company) => {
       const matchesSearch =
         search.trim() === "" ||
         company.name?.toLowerCase().includes(search.toLowerCase()) ||
-        company.industry?.toLowerCase().includes(search.toLowerCase()) ||
+        company.industryFocus?.toLowerCase().includes(search.toLowerCase()) ||
         company.headquarters?.toLowerCase().includes(search.toLowerCase());
       return matchesSearch;
     });
@@ -61,10 +60,10 @@ const KnowYourAICompanies = ({ search }) => {
 
   const renderCompanyCard = (company, index) => {
     const colorSet = {
-      bg: "bg-gradient-to-br from-purple-600 to-indigo-700", // Distinct color for KnowYourAI
-      text: "text-purple-700",
-      light: "bg-purple-100",
-      highlight: "from-purple-300 to-indigo-300",
+      bg: "bg-gradient-to-br from-blue-600 to-cyan-700", // Distinct color for Waffler
+      text: "text-blue-700",
+      light: "bg-blue-100",
+      highlight: "from-blue-300 to-cyan-300",
     };
 
     return (
@@ -91,14 +90,14 @@ const KnowYourAICompanies = ({ search }) => {
           </div>
         </div>
         <div className="px-6 pt-2 pb-6 flex-grow">
-          <h3 className="text-xl font-bold text-gray-900 text-center mb-4 group-hover:text-purple-600 transition-colors">
+          <h3 className="text-xl font-bold text-gray-900 text-center mb-4 group-hover:text-blue-600 transition-colors">
             {company.name}
           </h3>
           <div className="space-y-2.5">
-            {company.industry && (
+            {company.industryFocus && (
               <div className="flex items-center text-gray-700">
                 <Briefcase size={16} className="mr-3 text-gray-500" />
-                <span className="text-sm">{company.industry}</span>
+                <span className="text-sm">{company.industryFocus}</span>
               </div>
             )}
             {company.headquarters && (
@@ -133,7 +132,7 @@ const KnowYourAICompanies = ({ search }) => {
           <span
             className={`text-xs font-medium px-3 py-1 rounded-full ${colorSet.light} ${colorSet.text} shadow-sm`}
           >
-            KnowYourAI
+            Waffler
           </span>
         </div>
         <div className="absolute inset-0 bg-gradient-to-br opacity-0 group-hover:opacity-5 transition-opacity duration-300 pointer-events-none"></div>
@@ -147,8 +146,8 @@ const KnowYourAICompanies = ({ search }) => {
       <div className="flex justify-center items-center h-64">
         <div className="relative">
           <div className="w-20 h-20 border-4 border-blue-200 border-t-blue-500 rounded-full animate-spin"></div>
-          <div className="w-14 h-14 border-4 border-purple-200 border-t-purple-500 rounded-full animate-spin absolute top-3 left-3"></div>
-          <div className="w-8 h-8 border-4 border-pink-200 border-t-pink-500 rounded-full animate-spin absolute top-6 left-6"></div>
+          <div className="w-14 h-14 border-4 border-blue-200 border-t-blue-500 rounded-full animate-spin absolute top-3 left-3"></div>
+          <div className="w-8 h-8 border-4 border-blue-200 border-t-blue-500 rounded-full animate-spin absolute top-6 left-6"></div>
         </div>
       </div>
     );
@@ -163,4 +162,4 @@ const KnowYourAICompanies = ({ search }) => {
   );
 };
 
-export default KnowYourAICompanies;
+export default WafflerCompanies;
