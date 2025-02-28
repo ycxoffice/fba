@@ -1,6 +1,18 @@
 import React, { useState } from "react";
 import { ChevronDown, ExternalLink, Building2 } from "lucide-react";
 
+export const fetchAuditData = async (companyName, BASE_URL) => {
+  try {
+    const response = await fetch(`${BASE_URL}/api/audit/${companyName}`);
+    if (!response.ok) return null;
+    const data = await response.json();
+    return Object.keys(data).length > 0 ? data : null;
+  } catch (error) {
+    console.error("Audit fetch error:", error);
+    return null;
+  }
+};
+
 const renderValue = (value, depth = 0) => {
   if (value === null || value === undefined) return null;
 

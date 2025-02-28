@@ -161,22 +161,6 @@ const DirectoryCompanies = ({ search }) => {
     );
   }
 
-  if (companies.length === 0) {
-    return (
-      <div className="bg-white rounded-2xl shadow-lg p-10 text-center">
-        <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
-          <Globe size={48} className="text-gray-400" />
-        </div>
-        <h3 className="text-2xl font-bold text-gray-700 mb-2">
-          No directory companies found
-        </h3>
-        <p className="text-gray-500 max-w-md mx-auto">
-          Try adjusting your search criteria to find directory companies
-        </p>
-      </div>
-    );
-  }
-
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {companies.map((company, index) => renderCompanyCard(company, index))}

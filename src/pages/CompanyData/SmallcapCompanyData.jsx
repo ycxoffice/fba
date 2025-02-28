@@ -1,5 +1,30 @@
+//smallcap companydata
 import React from "react";
 import { Link } from "react-router-dom";
+
+export const fetchSmallcapData = async (companyName) => {
+  try {
+    const sheetId = "10n9xmV01j3_6pDU7QiR5DIbanIfAyYcd8rVavXT17oE";
+    const tabId = "336036379";
+    const response = await fetch(
+      `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=out:json&gid=${tabId}`
+    );
+    const text = await response.text();
+    const jsonData = JSON.parse(text.substring(47).slice(0, -2));
+
+    const rows = jsonData.table.rows.map((row) => {
+      return jsonData.table.cols.reduce((acc, col, index) => {
+        acc[col.label] = row.c[index]?.v || "";
+        return acc;
+      }, {});
+    });
+
+    return rows.find((comp) => comp["Company Name"] === companyName) || null;
+  } catch (error) {
+    console.error("Smallcap fetch error:", error);
+    return null;
+  }
+};
 
 const SmallcapCompanyData = ({ smallcapData }) => {
   const generalInfo = [

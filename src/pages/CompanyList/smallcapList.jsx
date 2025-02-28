@@ -1,3 +1,4 @@
+//smallcap company list.
 import React, { useState, useEffect, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { Building2, Briefcase, MapPin, Globe, Star } from "lucide-react";
@@ -229,23 +230,6 @@ const SmallcapCompanies = ({ search, filters, onFilterOptionsUpdate }) => {
           <div className="w-14 h-14 border-4 border-purple-200 border-t-purple-500 rounded-full animate-spin absolute top-3 left-3"></div>
           <div className="w-8 h-8 border-4 border-pink-200 border-t-pink-500 rounded-full animate-spin absolute top-6 left-6"></div>
         </div>
-      </div>
-    );
-  }
-
-  if (filteredCompanies.length === 0) {
-    return (
-      <div className="bg-white rounded-2xl shadow-lg p-10 text-center">
-        <div className="mx-auto w-24 h-24 bg-gray-100 rounded-full flex items-center justify-center mb-6">
-          <Star size={48} className="text-gray-400" />
-        </div>
-        <h3 className="text-2xl font-bold text-gray-700 mb-2">
-          No smallcap companies found
-        </h3>
-        <p className="text-gray-500 max-w-md mx-auto">
-          Try adjusting your search criteria or filters to find smallcap
-          companies
-        </p>
       </div>
     );
   }
