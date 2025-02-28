@@ -8,7 +8,7 @@ import SmallcapCompanyData, {
 } from "./CompanyData/SmallcapCompanyData";
 import KnowYourAICompanyData, {
   fetchKnowYourAIData,
-} from "./CompanyData/KnowYourAICompanyData";
+} from "./CompanyData/knowyouraicompanydata";
 
 const CompanyData = () => {
   const { companyName } = useParams();
