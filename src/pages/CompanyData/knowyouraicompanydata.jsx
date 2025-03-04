@@ -1,4 +1,3 @@
-//know you ai company data
 import React, { useState, useEffect } from "react";
 import { useParams, Link } from "react-router-dom";
 
@@ -30,9 +29,9 @@ export const fetchKnowYourAIData = async (companyName) => {
   }
 };
 
-function knowyouraicompanydata() {
+function Knowyouraicompanydata() {
   const { companyName } = useParams();
-  const [company, setCompany] = useState(null);
+  const [companyData, setCompanyData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -47,19 +46,19 @@ function knowyouraicompanydata() {
         const response = await fetch(url);
         const text = await response.text();
 
-        // Parse the JSON-like response from Google Sheets - maintaining same logic
+        // Parse the JSON-like response from Google Sheets
         const jsonData = JSON.parse(text.substring(47).slice(0, -2));
 
-        // Extract column headers and company data - maintaining same logic
+        // Extract column headers and company data
         const headers = jsonData.table.cols.map((col) => col.label);
         const rows = jsonData.table.rows.map((row) => {
-          const companyData = {};
+          const compData = {};
           row.c.forEach((cell, i) => {
             if (headers[i]) {
-              companyData[headers[i]] = cell ? cell.v : "";
+              compData[headers[i]] = cell ? cell.v : "";
             }
           });
-          return companyData;
+          return compData;
         });
 
         // Find the specific company - maintaining same logic
@@ -68,7 +67,7 @@ function knowyouraicompanydata() {
         );
 
         if (foundCompany) {
-          setCompany(foundCompany);
+          setCompanyData(foundCompany);
         } else {
           setError("Company not found");
         }
@@ -117,7 +116,7 @@ function knowyouraicompanydata() {
               We couldn't find the company you're looking for.
             </p>
             <Link
-              to="/"
+              to="/CompanyList"
               className="inline-flex items-center px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-800 text-white hover:from-emerald-500 hover:to-emerald-700 transition-all duration-300 shadow-lg shadow-emerald-700/30"
             >
               <svg
@@ -140,17 +139,17 @@ function knowyouraicompanydata() {
       </div>
     );
 
-  if (!company) return null;
+  if (!companyData) return null;
 
   // Define attribute groups
-  const generalInfo = [
+  const generalInfoGroup = [
     "Industry",
     "Headquarters",
     "Founding Year",
     "No.Employees",
   ];
-  const financialInfo = ["Funding Raised", "Revenue", "Valuation"];
-  const aiInfo = [
+  const financialInfoGroup = ["Funding Raised", "Revenue", "Valuation"];
+  const aiInfoGroup = [
     "AI Model Used",
     "Primary AI Use Case",
     "AI Frameworks Used",
@@ -159,69 +158,24 @@ function knowyouraicompanydata() {
     "AI Research Papers Published",
     "Partnerships",
   ];
-  const peopleInfo = [
+  const peopleInfoGroup = [
     "Founders & LinkedIn URLs",
     "Key Contacts",
     "Social Media Links",
   ];
-
-  // Helper function to render URLs as Link components
-  const renderWithLinks = (text) => {
-    if (!text) return "";
-
-    // Simple check if text contains a URL
-    if (!text.includes("http")) {
-      return text;
-    }
-
-    // For LinkedIn profiles - specific handling
-    if (text.includes("linkedin.com")) {
-      return (
-        <span>
-          {text
-            .split(/(https:\/\/www\.linkedin\.com\/[^\s,]+)/)
-            .map((part, i) => {
-              if (part.startsWith("https://www.linkedin.com")) {
-                return (
-                  <a
-                    key={i}
-                    href={part}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-emerald-400 hover:text-emerald-300 transition-colors hover:underline ml-1"
-                  >
-                    LinkedIn Profile
-                  </a>
-                );
-              }
-              return part;
-            })}
-        </span>
-      );
-    }
-
-    // For other URLs
-    return (
-      <span>
-        {text.split(/(https?:\/\/[^\s,]+)/).map((part, i) => {
-          if (part.startsWith("http")) {
-            return (
-              <a
-                key={i}
-                href={part}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="text-emerald-400 hover:text-emerald-300 transition-colors hover:underline ml-1"
-              >
-                Link
-              </a>
-            );
-          }
-          return part;
-        })}
-      </span>
-    );
-  };
+  // New group for additional market & recognition attributes
+  const marketRecognitionInfo = [
+    "Technology Stack",
+    "Customer Base",
+    "Case Studies",
+    "Awards and Recognitions",
+    "Compliance and Regulatory Adherence",
+    "Market Presence",
+    "Community Engagement",
+    "AI Ethics Policies",
+    "Competitor Analysis",
+    "Media Mentions",
+  ];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-900 via-gray-800 to-black text-gray-100 overflow-hidden">
@@ -232,7 +186,7 @@ function knowyouraicompanydata() {
 
       <div className="container mx-auto px-4 py-8 relative z-10">
         <Link
-          to="/"
+          to="/CompanyList"
           className="inline-flex items-center text-emerald-400 hover:text-emerald-300 mb-8 transition-all duration-300 group"
         >
           <div className="bg-gray-800/80 p-2 rounded-full mr-3 group-hover:bg-gray-700/80 transition-all">
@@ -263,19 +217,19 @@ function knowyouraicompanydata() {
               <div className="flex flex-col md:flex-row md:items-end justify-between">
                 <div>
                   <h1 className="text-4xl md:text-5xl font-bold text-white mb-4 leading-tight bg-clip-text text-transparent bg-gradient-to-r from-white via-blue-100 to-white">
-                    {company["Company Name"]}
+                    {companyData["Company Name"]}
                   </h1>
                   <div className="flex flex-wrap items-center gap-3 mt-2">
-                    {company["Industry"] && (
+                    {companyData["Industry"] && (
                       <span className="bg-black/30 text-white px-4 py-1.5 rounded-full backdrop-blur-sm text-sm font-medium border border-white/10">
-                        {company["Industry"]}
+                        {companyData["Industry"]}
                       </span>
                     )}
                   </div>
                 </div>
-                {company["Website"] && (
+                {companyData["Website"] && (
                   <a
-                    href={company["Website"]}
+                    href={companyData["Website"]}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-white/90 hover:text-white inline-flex items-center mt-4 md:mt-0 bg-white/10 px-5 py-2.5 rounded-xl backdrop-blur-sm hover:bg-white/20 transition-all duration-300 group border border-white/10"
@@ -302,7 +256,7 @@ function knowyouraicompanydata() {
 
           {/* About Section with glass effect */}
           <div className="p-8">
-            {company["Company Description"] && (
+            {companyData["Company Description"] && (
               <div className="mb-10 bg-gray-800/40 p-6 rounded-2xl border border-gray-700/50 backdrop-blur-sm hover:bg-gray-800/50 transition-all duration-300">
                 <h2 className="text-xl font-semibold text-white mb-4 flex items-center">
                   <svg
@@ -322,13 +276,13 @@ function knowyouraicompanydata() {
                   About
                 </h2>
                 <p className="text-gray-300 leading-relaxed">
-                  {company["Company Description"]}
+                  {companyData["Company Description"]}
                 </p>
               </div>
             )}
 
-            {/* Information Groups with enhanced cards */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* Information Groups */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-6">
               {/* General Information */}
               <div className="bg-gradient-to-br from-emerald-900/50 to-blue-900/50 p-6 rounded-2xl border border-gray-700/50 backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:shadow-emerald-800/20 group">
                 <h2 className="text-xl font-semibold text-white mb-5 flex items-center group-hover:text-emerald-300 transition-colors">
@@ -344,28 +298,23 @@ function knowyouraicompanydata() {
                         strokeLinejoin="round"
                         strokeWidth="2"
                         d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"
-                      ></path>
+                      />
                     </svg>
                   </div>
                   General Information
                 </h2>
                 <div className="space-y-5">
-                  {generalInfo.map(
+                  {generalInfoGroup.map(
                     (key) =>
-                      company[key] && (
+                      companyData[key] && (
                         <div key={key} className="flex flex-col">
-                          <span className="text-emerald-400/80 text-sm font-medium mb-1">
-                            {key}
-                          </span>
-                          <span className="text-white font-medium text-lg">
-                            {company[key]}
-                          </span>
+                          <span className="text-emerald-400/80 text-sm font-medium mb-1">{key}</span>
+                          <span className="text-white font-medium text-lg">{companyData[key]}</span>
                         </div>
                       )
                   )}
                 </div>
               </div>
-
               {/* Financial Information */}
               <div className="bg-gradient-to-br from-blue-900/50 to-purple-900/50 p-6 rounded-2xl border border-gray-700/50 backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:shadow-blue-800/20 group">
                 <h2 className="text-xl font-semibold text-white mb-5 flex items-center group-hover:text-blue-300 transition-colors">
@@ -380,118 +329,174 @@ function knowyouraicompanydata() {
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         strokeWidth="2"
-                        d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
-                      ></path>
+                        d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"
+                      />
                     </svg>
                   </div>
                   Financial Information
                 </h2>
                 <div className="space-y-5">
-                  {financialInfo.map(
+                  {financialInfoGroup.map(
                     (key) =>
-                      company[key] && (
+                      companyData[key] && (
                         <div key={key} className="flex flex-col">
-                          <span className="text-blue-400/80 text-sm font-medium mb-1">
-                            {key}
-                          </span>
+                          <span className="text-blue-400/80 text-sm font-medium mb-1">{key}</span>
                           <span className="text-white font-medium text-lg">
-                            {typeof company[key] === "string" &&
-                            company[key].includes("$")
-                              ? company[key]
-                              : `$${company[key]}`}
+                            {typeof companyData[key] === "string" && companyData[key].includes("$")
+                              ? companyData[key]
+                              : `$${companyData[key]}`}
                           </span>
                         </div>
                       )
                   )}
                 </div>
               </div>
-
+            </div>
+            <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
               {/* AI Capabilities */}
-              <div className="space-y-5">
-                {aiInfo.map(
-                  (key) =>
-                    company[key] && (
-                      <div key={key} className="flex flex-col">
-                        <span className="text-purple-400/80 text-sm font-medium mb-1">
-                          {key}
-                        </span>
-                        <span className="text-white font-medium text-lg">
-                          {company[key]
-                            .split(/(https?:\/\/[^\s]+)/g)
-                            .map((part, i) =>
-                              part.match(/^https?:\/\/.+/) ? (
-                                <a
-                                  key={i}
-                                  href={part}
-                                  target="_blank"
-                                  rel="noopener noreferrer"
-                                  className="text-emerald-400 hover:text-emerald-300 underline"
-                                >
-                                  {part}
-                                </a>
-                              ) : (
-                                <span key={i}>{part}</span>
-                              )
-                            )}
-                        </span>
-                      </div>
-                    )
-                )}
+              <div className="bg-gradient-to-br from-indigo-900/50 to-purple-900/50 p-6 rounded-2xl border border-gray-700/50 backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:shadow-indigo-800/20 group">
+                <h2 className="text-xl font-semibold text-white mb-5 flex items-center group-hover:text-indigo-300 transition-colors">
+                  <div className="bg-gray-800/70 p-2 rounded-lg mr-3 group-hover:bg-gray-700/70">
+                    <svg
+                      className="w-5 h-5 text-indigo-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                      />
+                    </svg>
+                  </div>
+                  AI Capabilities
+                </h2>
+                <div className="space-y-5">
+                  {aiInfoGroup.map(
+                    (key) =>
+                      companyData[key] && (
+                        <div key={key} className="flex flex-col">
+                          <span className="text-purple-400/80 text-sm font-medium mb-1">{key}</span>
+                          <span className="text-white font-medium text-lg">
+                            {companyData[key]
+                              .split(/(https?:\/\/[^\s]+)/g)
+                              .map((part, i) =>
+                                part.match(/^https?:\/\/.+/) ? (
+                                  <a
+                                    key={i}
+                                    href={part}
+                                    target="_blank"
+                                    rel="noopener noreferrer"
+                                    className="text-emerald-400 hover:text-emerald-300 underline ml-1"
+                                  >
+                                    {part}
+                                  </a>
+                                ) : (
+                                  <span key={i}>{part}</span>
+                                )
+                              )}
+                          </span>
+                        </div>
+                      )
+                  )}
+                </div>
+              </div>
+              {/* People & Contacts */}
+              <div className="bg-gradient-to-br from-green-900/50 to-teal-900/50 p-6 rounded-2xl border border-gray-700/50 backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:shadow-green-800/20 group">
+                <h2 className="text-xl font-semibold text-white mb-5 flex items-center group-hover:text-teal-300 transition-colors">
+                  <div className="bg-gray-800/70 p-2 rounded-lg mr-3 group-hover:bg-gray-700/70">
+                    <svg
+                      className="w-5 h-5 text-teal-400"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"
+                      />
+                    </svg>
+                  </div>
+                  People & Contacts
+                </h2>
+                <div className="space-y-5">
+                  {peopleInfoGroup.map(
+                    (key) =>
+                      companyData[key] && (
+                        <div key={key} className="flex flex-col">
+                          <span className="text-indigo-400/80 text-sm font-medium mb-2">{key}</span>
+                          <span className="text-white">
+                            {key === "Founders & LinkedIn URLs" &&
+                            companyData[key].includes("linkedin.com")
+                              ? companyData[key]
+                                  .split(/(https:\/\/[^\s]+)/g)
+                                  .map((part, i) =>
+                                    part.match(/^https:\/\/[^\s]+/) ? (
+                                      <a
+                                        key={i}
+                                        href={part}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-emerald-400 hover:text-emerald-300 underline ml-1"
+                                      >
+                                        LinkedIn
+                                      </a>
+                                    ) : (
+                                      <span key={i}>{part}</span>
+                                    )
+                                  )
+                              : key === "Social Media Links"
+                              ? companyData[key]
+                                  .split(/(https?:\/\/[^\s]+)/g)
+                                  .map((part, i) =>
+                                    part.match(/^https?:\/\/[^\s]+/) ? (
+                                      <a
+                                        key={i}
+                                        href={part}
+                                        target="_blank"
+                                        rel="noopener noreferrer"
+                                        className="text-emerald-400 hover:text-emerald-300 underline ml-1"
+                                      >
+                                        {new URL(part).hostname}
+                                      </a>
+                                    ) : (
+                                      <span key={i}>{part}</span>
+                                    )
+                                  )
+                              : companyData[key]}
+                          </span>
+                        </div>
+                      )
+                  )}
+                </div>
               </div>
             </div>
-
+            {/* New Market & Recognition Group */}
             <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-6">
-              {/* People & Contacts with enhanced social links */}
-              <div className="space-y-5">
-                {peopleInfo.map(
-                  (key) =>
-                    company[key] && (
-                      <div key={key} className="flex flex-col">
-                        <span className="text-indigo-400/80 text-sm font-medium mb-2">
-                          {key}
-                        </span>
-                        <span className="text-white">
-                          {key === "Founders & LinkedIn URLs"
-                            ? company[key]
-                                .split(/(https:\/\/[^\s]+)/g)
-                                .map((part, i) =>
-                                  part.match(/^https:\/\/.+/) ? (
-                                    <a
-                                      key={i}
-                                      href={part}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="text-emerald-400 hover:text-emerald-300 underline"
-                                    >
-                                      LinkedIn
-                                    </a>
-                                  ) : (
-                                    <span key={i}>{part}</span>
-                                  )
-                                )
-                            : key === "Social Media Links"
-                            ? company[key]
-                                .split(/(https?:\/\/[^\s]+)/g)
-                                .map((part, i) =>
-                                  part.match(/^https?:\/\/.+/) ? (
-                                    <a
-                                      key={i}
-                                      href={part}
-                                      target="_blank"
-                                      rel="noopener noreferrer"
-                                      className="text-emerald-400 hover:text-emerald-300 underline"
-                                    >
-                                      {new URL(part).hostname}
-                                    </a>
-                                  ) : (
-                                    <span key={i}>{part}</span>
-                                  )
-                                )
-                            : company[key]}
-                        </span>
-                      </div>
-                    )
-                )}
+              <div className="bg-gradient-to-br from-gray-700/50 to-gray-900/50 p-6 rounded-2xl border border-gray-700/50 backdrop-blur-sm transition-all duration-300 hover:shadow-lg hover:shadow-gray-700/20 group">
+                <h2 className="text-xl font-semibold text-white mb-5 flex items-center group-hover:text-gray-300 transition-colors">
+                  <div className="bg-gray-800/70 p-2 rounded-lg mr-3 group-hover:bg-gray-700/70">
+                    <svg className="w-5 h-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3-.895 3-2-1.343-2-3-2zm0 8c-2.21 0-4 1.79-4 4h8c0-2.21-1.79-4-4-4z" />
+                    </svg>
+                  </div>
+                  Market & Recognition
+                </h2>
+                <div className="space-y-5">
+                  {marketRecognitionInfo.map(
+                    (key) =>
+                      companyData[key] && (
+                        <div key={key} className="flex flex-col">
+                          <span className="text-gray-400 text-sm font-medium mb-1">{key}</span>
+                          <span className="text-white font-medium text-lg">{companyData[key]}</span>
+                        </div>
+                      )
+                  )}
+                </div>
               </div>
             </div>
           </div>
@@ -501,4 +506,4 @@ function knowyouraicompanydata() {
   );
 }
 
-export default knowyouraicompanydata;
+export default Knowyouraicompanydata;
