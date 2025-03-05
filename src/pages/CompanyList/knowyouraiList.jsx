@@ -69,7 +69,7 @@ const KnowYourAICompanies = ({ search }) => {
 
     return (
       <Link
-        to={`/${encodeURIComponent(company.name)}`}
+        to={`/${encodeURIComponent(company.name.split(" ")[0])}`}
         key={index}
         className="group relative bg-white rounded-2xl overflow-hidden transition-all duration-300 shadow-sm hover:shadow-2xl transform hover:-translate-y-1 flex flex-col h-full"
       >

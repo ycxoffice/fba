@@ -20,9 +20,12 @@ export const fetchKnowYourAIData = async (companyName) => {
 
     return (
       rows.find(
-        (comp) => decodeURIComponent(companyName) === comp["Company Name"]
+        (comp) =>
+          decodeURIComponent(companyName).split(" ")[0] ===
+          comp["Company Name"].split(" ")[0]
       ) || null
     );
+    
   } catch (error) {
     console.error("KnowYourAI fetch error:", error);
     return null;
@@ -63,7 +66,8 @@ function Knowyouraicompanydata() {
 
         // Find the specific company - maintaining same logic
         const foundCompany = rows.find(
-          (comp) => decodeURIComponent(companyName) === comp["Company Name"]
+          (comp) => decodeURIComponent(companyName).split(" ")[0] ===
+          comp["Company Name"].split(" ")[0]
         );
 
         if (foundCompany) {
@@ -116,7 +120,7 @@ function Knowyouraicompanydata() {
               We couldn't find the company you're looking for.
             </p>
             <Link
-              to="/CompanyList"
+              to="/"
               className="inline-flex items-center px-6 py-3 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-800 text-white hover:from-emerald-500 hover:to-emerald-700 transition-all duration-300 shadow-lg shadow-emerald-700/30"
             >
               <svg
